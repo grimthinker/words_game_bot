@@ -68,12 +68,12 @@ class QuizAccessor(BaseAccessor):
 
 
     async def create_question(
-        self, title: str, theme_id: int, answers: list[Answer]
+        self, title: str, theme_id: int, points: int, answers: list[Answer]
     ) -> Question:
 
         async with self.app.database.session() as session:
             async with session.begin():
-                question = QuestionModel(title=title, theme_id=theme_id)
+                question = QuestionModel(title=title, points=points, theme_id=theme_id)
                 session.add(question)
 
         await self.create_answers(question_id=question.id, answers=answers)

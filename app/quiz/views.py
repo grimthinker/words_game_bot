@@ -58,8 +58,13 @@ class QuestionAddView(AuthRequiredMixin, View):
             raise HTTPBadRequest
 
         answers_list = await self.store.quizzes.create_answers_list(answers=answers)
-
-        question = await self.store.quizzes.create_question(title=title, theme_id=theme_id, answers=answers_list)
+        points = self.data["points"]
+        question = await self.store.quizzes.create_question(
+                                                            title=title,
+                                                            theme_id=theme_id,
+                                                            points=points,
+                                                            answers=answers_list
+                                                            )
         raw_answers = [AnswerSchema().dump(answer) for answer in answers_list]
         return json_response(data={"id": question.id, "theme_id": theme_id, "answers": raw_answers, "title": title})
 

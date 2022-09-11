@@ -1,10 +1,5 @@
 from dataclasses import dataclass
-
-
-@dataclass
-class Message:
-    user_id: int
-    text: str
+from typing import Optional
 
 
 @dataclass
@@ -12,6 +7,8 @@ class UpdateMessage:
     from_id: int
     text: str
     id: int
+    peer_id: int
+    action_type: Optional[str]
 
 
 @dataclass
