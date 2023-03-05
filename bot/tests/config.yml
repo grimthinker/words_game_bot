@@ -1,0 +1,19 @@
+session:
+  key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
+admin:
+  email: admin@admin.com
+  password: admin
+bot:
+  vk_token: vk_token
+  tg_token: tg_token
+  group_id: 1
+game:
+  word_wait_time: 0.5
+  vote_wait_time: 0.5
+  random_start: 0
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: 17
+  database: postgres
