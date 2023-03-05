@@ -65,7 +65,7 @@ def setup_config(app: "Application", config_path: str):
         game=GameConfig(
             word_wait_time=raw_config["game"]["word_wait_time"],
             vote_wait_time=raw_config["game"]["vote_wait_time"],
-            random_start=raw_config["game"]["random_start"]
+            random_start=raw_config["game"]["random_start"],
         ),
         bot=BotConfig(
             vk_token=raw_config["bot"]["vk_token"],

@@ -31,4 +31,3 @@ class AdminAccessor(BaseAccessor):
             password = sha256(password.encode()).hexdigest()
             admin = AdminModel(email=email, password=password)
             db_session.add(admin)
-

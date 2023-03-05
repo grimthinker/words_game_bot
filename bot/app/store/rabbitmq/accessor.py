@@ -30,7 +30,6 @@ class RabbitAccessor(BaseAccessor):
         self.rabbit_queue = await self.channel.declare_queue("main_queue")
         await self.rabbit_queue.consume(self.on_message, no_ack=False)
 
-
     async def disconnect(self, app: "Application"):
         self.is_running = False
         if self.handle_task:
@@ -39,7 +38,7 @@ class RabbitAccessor(BaseAccessor):
             self.connection.close()
 
     async def on_message(self, message: AbstractIncomingMessage):
-        raw_upd_json = message.body.decode('utf-8')
+        raw_upd_json = message.body.decode("utf-8")
         raw_updates = json.loads(raw_upd_json)
         if "updates" in raw_updates:
             for raw_update in raw_updates["updates"]:
@@ -49,7 +48,6 @@ class RabbitAccessor(BaseAccessor):
                     update = vk_make_update_from_raw(raw_update)
                 await self.async_queue.put(update)
         await message.ack()
-
 
     async def handle(self):
         async with asyncpool.AsyncPool(

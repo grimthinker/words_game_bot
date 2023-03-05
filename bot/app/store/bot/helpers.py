@@ -34,7 +34,7 @@ def remove_timer(timers: dict, key: int):
 
 def generate_some_order(lst: list):
     random.shuffle(lst)
-    return ((lst[x-1], lst[x]) for x in range(len(lst)))
+    return ((lst[x - 1], lst[x]) for x in range(len(lst)))
 
 
 def correct_text(update: Update):
@@ -60,7 +60,8 @@ def list_results(players: list[SessionPlayer]) -> str:
         string += " points; "
     return string
 
-class MessageHelper():
+
+class MessageHelper:
     initial = "Commands: /start, /participate, /launch, /yes, /no, /end"
     already_started = "Game's already started"
     no_session = "No running game session, start a new one using /start"
@@ -101,7 +102,9 @@ class MessageHelper():
 
     @staticmethod
     def word_proposed(update: Update):
-        return f"{update.message.user.username} proposes a word: '{update.message.text}'"
+        return (
+            f"{update.message.user.username} proposes a word: '{update.message.text}'"
+        )
 
     @staticmethod
     def cant_vote(update: Update):

@@ -7,15 +7,11 @@ if typing.TYPE_CHECKING:
     from bot_app.app.web.app import Application
 
 
-
-
 @dataclass
 class BotConfig:
     vk_token: str
     tg_token: str
     group_id: int
-
-
 
 
 @dataclass
@@ -31,5 +27,6 @@ def setup_config(app: "Application", config_path: str):
         bot=BotConfig(
             vk_token=raw_config["bot"]["vk_token"],
             tg_token=raw_config["bot"]["tg_token"],
-            group_id=raw_config["bot"]["group_id"]
-    ))
+            group_id=raw_config["bot"]["group_id"],
+        )
+    )

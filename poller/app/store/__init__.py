@@ -12,12 +12,11 @@ class Store:
         from app.store.tg_api.accessor import TGApiAccessor
         from app.store.vk_api.accessor import VkApiAccessor
 
-        if API == 'tg':
+        if API == "tg":
             self.external_api = TGApiAccessor(app)
         else:
             self.external_api = VkApiAccessor(app)
         self.rabbit_accessor = RabbitAccessor(app)
-
 
 
 def setup_store(app: "Application"):

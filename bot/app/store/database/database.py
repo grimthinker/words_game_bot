@@ -34,7 +34,7 @@ class Database:
         self.session = sessionmaker(
             self._engine, expire_on_commit=False, class_=AsyncSession
         )
-        await self.clear_db()   # Remove this when all is done
+        await self.clear_db()  # Remove this when all is done
 
     async def disconnect(self, *_: list, **__: dict) -> None:
         await self.clear_db()
@@ -52,11 +52,13 @@ class Database:
                 "association_players_sessions",
                 "game_sessions",
                 "session_words",
-                "votes"
+                "votes",
             )
             for table in tables:
                 await session.execute(text(f"TRUNCATE {table} CASCADE"))
                 await session.commit()
             for table in ["game_sessions", "admins", "session_words"]:
-                await session.execute(text(f"ALTER SEQUENCE {table}_id_seq RESTART WITH 1"))
+                await session.execute(
+                    text(f"ALTER SEQUENCE {table}_id_seq RESTART WITH 1")
+                )
                 await session.commit()

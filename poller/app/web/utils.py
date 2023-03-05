@@ -4,8 +4,16 @@ from typing import Any, Optional, Union
 from aiohttp.web import json_response as aiohttp_json_response
 from aiohttp.web_response import Response
 
-from app.store.tg_api.dataclasses import Update as tgUpdate, UpdateMessage as tgMessage, UpdateUser as tgUser
-from app.store.vk_api.dataclasses import Update as vkUpdate, UpdateMessage as vkMessage, UpdateUser as vkUser
+from app.store.tg_api.dataclasses import (
+    Update as tgUpdate,
+    UpdateMessage as tgMessage,
+    UpdateUser as tgUser,
+)
+from app.store.vk_api.dataclasses import (
+    Update as vkUpdate,
+    UpdateMessage as vkMessage,
+    UpdateUser as vkUser,
+)
 
 
 def json_response(data: Any = None, status: str = "ok") -> Response:
@@ -39,12 +47,18 @@ def error_json_response(
 
 def vk_make_update_from_raw(raw_update: dict) -> vkUpdate:
     text = raw_update["object"]["message"]["text"].split()[-1]
-    update = vkUpdate(id=raw_update["event_id"],
-                      message=vkMessage(user=vkUser(id=raw_update["object"]["message"]["from_id"],
-                                                    username=str(raw_update["object"]["message"]["from_id"])),
-                                        chat_id=raw_update["object"]["message"]["peer_id"],
-                                        id=raw_update["event_id"],
-                                        text=text))
+    update = vkUpdate(
+        id=raw_update["event_id"],
+        message=vkMessage(
+            user=vkUser(
+                id=raw_update["object"]["message"]["from_id"],
+                username=str(raw_update["object"]["message"]["from_id"]),
+            ),
+            chat_id=raw_update["object"]["message"]["peer_id"],
+            id=raw_update["event_id"],
+            text=text,
+        ),
+    )
     return update
 
 
@@ -56,12 +70,14 @@ def tg_make_update_from_raw(raw_update: dict) -> tgUpdate:
                 id=raw_update["message"]["from"]["id"],
                 is_bot=raw_update["message"]["from"]["is_bot"],
                 first_name=raw_update["message"]["from"]["first_name"],
-                username=raw_update["message"]["from"]["username"]),
+                username=raw_update["message"]["from"]["username"],
+            ),
             text=raw_update["message"]["text"],
             id=raw_update["message"]["message_id"],
             chat_id=raw_update["message"]["chat"]["id"],
             date=raw_update["message"]["date"],
-        ))
+        ),
+    )
     return update
 
 
@@ -88,7 +104,15 @@ class KeyboardHelper:
     @classmethod
     def generate_helping_keyboard(cls):
         buttons = [
-            [cls._button("/start", payload="{}"), cls._button("/launch", payload="{}"), cls._button("/yes", payload="{}")],
-            [cls._button("/participate", payload="{}"), cls._button("/end", payload="{}"), cls._button("/no", payload="{}")],
+            [
+                cls._button("/start", payload="{}"),
+                cls._button("/launch", payload="{}"),
+                cls._button("/yes", payload="{}"),
+            ],
+            [
+                cls._button("/participate", payload="{}"),
+                cls._button("/end", payload="{}"),
+                cls._button("/no", payload="{}"),
+            ],
         ]
         return cls._keyboard(buttons=buttons)

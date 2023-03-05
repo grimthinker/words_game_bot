@@ -16,7 +16,7 @@ class Store:
         from app.store.game_session.accessor import GameSessionAccessor
 
         self.game_sessions = GameSessionAccessor(app)
-        if API == 'tg':
+        if API == "tg":
             self.external_api = TGApiAccessor(app)
         else:
             self.external_api = VkApiAccessor(app)

@@ -1,1 +1,1 @@
-API = 'vk'
+API = "vk"

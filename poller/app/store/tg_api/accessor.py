@@ -29,16 +29,14 @@ class TGApiAccessor(BaseAccessor):
 
     async def poll(self):
         query = self._build_query(
-                api_path=self.API_PATH,
-                method="/getUpdates",
-                params={
-                    "offset": self.offset,
-                    "timeout": 12,
-                },
-            )
-        async with self.session.get(
-                query
-        ) as resp:
+            api_path=self.API_PATH,
+            method="/getUpdates",
+            params={
+                "offset": self.offset,
+                "timeout": 12,
+            },
+        )
+        async with self.session.get(query) as resp:
             data = await resp.json()
             self.offset = data[-1]["id"]
             b_data = await resp.read()
