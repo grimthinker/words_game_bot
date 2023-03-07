@@ -70,31 +70,3 @@ async def chat_2(db_session: AsyncSession) -> Chat:
     async with db_session.begin() as session:
         session.add(chat)
     return Chat(id=chat.id)
-
-
-@pytest.fixture
-async def game_session_1(
-    db_session: AsyncSession, chat_1: Chat, creator_1: Player
-) -> GameSession:
-    game_session = GameSessionModel(
-        chat_id=chat_1.id,
-        creator_id=creator_1.id,
-        state=0,
-    )
-    async with db_session.begin() as session:
-        session.add(game_session)
-    return GameSessionModel.to_dc(game_session, creator_1, [creator_1])
-
-
-@pytest.fixture
-async def game_session_2(
-    db_session: AsyncSession, chat_2: Chat, creator_2: Player
-) -> GameSession:
-    game_session = GameSessionModel(
-        chat_id=chat_2.id,
-        creator_id=creator_2.id,
-        state=0,
-    )
-    async with db_session.begin() as session:
-        session.add(game_session)
-    return GameSessionModel.to_dc(game_session, creator_2, [creator_2])

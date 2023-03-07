@@ -7,7 +7,6 @@ from aiohttp import TCPConnector
 from aiohttp.client import ClientSession
 
 from app.base.base_accessor import BaseAccessor
-from app.web.utils import vk_make_update_from_raw, KeyboardHelper
 from app.store.vk_api.poller import Poller
 
 if typing.TYPE_CHECKING:
@@ -84,24 +83,3 @@ class VkApiAccessor(BaseAccessor):
             self.ts = data["ts"]
             b_data = await resp.read()
             await self.app.store.rabbit_accessor.send_to_queue(b_data)
-
-    async def send_message(self, chat_id: int, message: str) -> None:
-        params = {
-            "random_id": random.randint(1, 2**32),
-            "peer_id": chat_id,
-            "message": message,
-            "access_token": self.app.config.bot.vk_token,
-            "keyboard": KeyboardHelper.generate_helping_keyboard(),
-        }
-        async with self.session.get(
-            self._build_query(
-                API_PATH,
-                "messages.send",
-                params=params,
-            )
-        ) as resp:
-            data = await resp.json()
-            self.logger.info(data)
-
-    async def delete_message(self, chat, message_id):
-        pass  # VK API is mostly for tests, no need to clear chat

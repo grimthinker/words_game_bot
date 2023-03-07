@@ -14,9 +14,11 @@ if typing.TYPE_CHECKING:
 
 class AdminAccessor(BaseAccessor):
     async def connect(self, app: "Application"):
-        await self.create_admin(
-            email=app.config.admin.email, password=app.config.admin.password
-        )
+        admin = await self.get_by_email(email=app.config.admin.email)
+        if not admin:
+            await self.create_admin(
+                email=app.config.admin.email, password=app.config.admin.password
+            )
 
     async def get_by_email(self, email: str) -> typing.Optional[Admin]:
         async with self.app.database.session.begin() as db_session:

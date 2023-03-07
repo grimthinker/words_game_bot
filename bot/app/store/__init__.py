@@ -1,7 +1,6 @@
 import typing
 
 from app.store.database.database import Database
-from app.store.bot.constants import API
 
 if typing.TYPE_CHECKING:
     from poller.app.web.app import Application
@@ -14,9 +13,17 @@ class Store:
         from app.store.vk_api.accessor import VkApiAccessor
         from app.store.bot.manager import BotManager
         from app.store.game_session.accessor import GameSessionAccessor
+        from app.store.chat.accessor import ChatAccessor
+        from app.store.player.accessor import PlayerAccessor
+        from app.store.vote.accessor import VoteAccessor
+        from app.store.word.accessor import WordAccessor
 
         self.game_sessions = GameSessionAccessor(app)
-        if API == "tg":
+        self.chats = ChatAccessor(app)
+        self.players = PlayerAccessor(app)
+        self.votes = VoteAccessor(app)
+        self.words = WordAccessor(app)
+        if app.config.bot.api == "tg":
             self.external_api = TGApiAccessor(app)
         else:
             self.external_api = VkApiAccessor(app)
