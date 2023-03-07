@@ -1,25 +1,21 @@
 from dataclasses import dataclass
 from typing import Optional, Union
 
+from app.base.dataclasses import UpdateUser, UpdateMessage, Update
+
 
 @dataclass
-class UpdateUser:
-    id: int
+class TGUpdateUser(UpdateUser):
     is_bot: bool
     first_name: str
-    username: str
 
 
 @dataclass
-class UpdateMessage:
-    user: Optional[UpdateUser]
-    text: str
-    id: int
-    chat_id: int
+class TGUpdateMessage(UpdateMessage):
+    user: Optional[TGUpdateUser]
     date: int
 
 
 @dataclass
-class Update:
-    id: int
-    message: UpdateMessage
+class TGUpdate(Update):
+    message: TGUpdateMessage

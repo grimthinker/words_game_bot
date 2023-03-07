@@ -4,8 +4,9 @@ import json
 import random
 from typing import Union, Optional
 
-from app.game_session.models import SessionPlayer, Player, Word
-from app.store.tg_api.dataclasses import Update
+from app.game_session.models import SessionPlayer, Player, Word, GameSession, StatesEnum
+from app.base.dataclasses import Update
+from app.store.tg_api.dataclasses import TGUpdate
 
 
 class AsyncTimer:
@@ -51,6 +52,10 @@ def judge_word(word: str) -> int:
     return 100
 
 
+def is_session_running(session: GameSession = None) -> bool:
+    return session and session.state != StatesEnum.ENDED.value
+
+
 def list_results(players: list[SessionPlayer]) -> str:
     string = ""
     for player in players:
@@ -81,41 +86,41 @@ class MessageHelper:
         return f"{update.message.user.username} has joined the game. Now wait for players to /participate, then /launch the game"
 
     @staticmethod
-    def already_participates(update: Update):
+    def already_participates(update: Union[Update, TGUpdate]):
         return f"{update.message.user.username} already in the game"
 
     @staticmethod
-    def joined(update: Update):
+    def joined(update: Union[Update, TGUpdate]):
         return f"{update.message.user.username} has joined the game"
 
     @staticmethod
-    def not_creator_to_launch(update: Update):
+    def not_creator_to_launch(update: Union[Update, TGUpdate]):
         return f"{update.message.user.username} is not the creator of the session to launch it"
 
     @staticmethod
-    def wrong_player_turn(update: Update):
+    def wrong_player_turn(update: Union[Update, TGUpdate]):
         return f"Now is not {update.message.user.username} turn"
 
     @staticmethod
-    def word_doesnt_fit(update: Update):
+    def word_doesnt_fit(update: Union[Update, TGUpdate]):
         return f"The word {update.message.text} does not fit"
 
     @staticmethod
-    def word_proposed(update: Update):
+    def word_proposed(update: Union[Update, TGUpdate]):
         return (
             f"{update.message.user.username} proposes a word: '{update.message.text}'"
         )
 
     @staticmethod
-    def cant_vote(update: Update):
+    def cant_vote(update: Union[Update, TGUpdate]):
         return f"{update.message.user.username} cannot vote"
 
     @staticmethod
-    def already_voted(update: Update):
+    def already_voted(update: Union[Update, TGUpdate]):
         return f"{update.message.user.username} has already voted"
 
     @staticmethod
-    def on_someones_vote(update: Update, word: Word):
+    def on_someones_vote(update: Union[Update, TGUpdate], word: Word):
         return f"{update.message.user.username} votes '{update.message.text}' for '{word.word}'"
 
     @staticmethod

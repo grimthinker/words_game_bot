@@ -4,16 +4,8 @@ from typing import Any, Optional, Union
 from aiohttp.web import json_response as aiohttp_json_response
 from aiohttp.web_response import Response
 
-from app.store.tg_api.dataclasses import (
-    Update as tgUpdate,
-    UpdateMessage as tgMessage,
-    UpdateUser as tgUser,
-)
-from app.store.vk_api.dataclasses import (
-    Update as vkUpdate,
-    UpdateMessage as vkMessage,
-    UpdateUser as vkUser,
-)
+from app.base.dataclasses import UpdateUser, UpdateMessage, Update
+from app.store.tg_api.dataclasses import TGUpdateUser, TGUpdateMessage, TGUpdate
 
 
 def json_response(data: Any = None, status: str = "ok") -> Response:
@@ -45,13 +37,18 @@ def error_json_response(
     )
 
 
-def vk_make_update_from_raw(raw_update: dict) -> vkUpdate:
-    print("wawwaar")
+def _build_query(host: str, method: str, params: dict) -> str:
+    url = host + method + "?"
+    url += "&".join([f"{k}={v}" for k, v in params.items()])
+    return url
+
+
+def vk_make_update_from_raw(raw_update: dict) -> Update:
     text = raw_update["object"]["message"]["text"].split()[-1]
-    update = vkUpdate(
+    update = Update(
         id=raw_update["event_id"],
-        message=vkMessage(
-            user=vkUser(
+        message=UpdateMessage(
+            user=UpdateUser(
                 id=raw_update["object"]["message"]["from_id"],
                 username=str(raw_update["object"]["message"]["from_id"]),
             ),
@@ -63,11 +60,11 @@ def vk_make_update_from_raw(raw_update: dict) -> vkUpdate:
     return update
 
 
-def tg_make_update_from_raw(raw_update: dict) -> tgUpdate:
-    update = tgUpdate(
+def tg_make_update_from_raw(raw_update: dict) -> Update:
+    update = TGUpdate(
         id=raw_update["update_id"],
-        message=tgMessage(
-            user=tgUser(
+        message=TGUpdateMessage(
+            user=TGUpdateUser(
                 id=raw_update["message"]["from"]["id"],
                 is_bot=raw_update["message"]["from"]["is_bot"],
                 first_name=raw_update["message"]["from"]["first_name"],

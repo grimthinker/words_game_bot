@@ -1,12 +1,11 @@
 import asyncio
 import json
 
-from aio_pika import Message, connect
+from aio_pika import connect
 from aio_pika.abc import AbstractIncomingMessage
 
 from app import asyncpool
 from app.base.base_accessor import BaseAccessor
-from app.store.bot.constants import API
 from app.web.utils import tg_make_update_from_raw, vk_make_update_from_raw
 
 
@@ -42,7 +41,7 @@ class RabbitAccessor(BaseAccessor):
         raw_updates = json.loads(raw_upd_json)
         if "updates" in raw_updates:
             for raw_update in raw_updates["updates"]:
-                if API == "tg":
+                if self.app.config.bot.api == "tg":
                     update = tg_make_update_from_raw(raw_update)
                 else:
                     update = vk_make_update_from_raw(raw_update)

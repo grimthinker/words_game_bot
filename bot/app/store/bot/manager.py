@@ -19,6 +19,7 @@ from app.store.bot.helpers import (
     list_results,
     MessageHelper,
     remove_timer,
+    is_session_running,
 )
 from app.store.tg_api.dataclasses import Update
 
@@ -93,13 +94,13 @@ class BotManager:
         self, db_session: AsyncSession, update: Update, session: GameSession = None
     ):
         """Adding a new player to game_session, after some checks"""
-        if not session or session.state == StatesEnum.ENDED.value:
+        if not is_session_running(session):
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
             return
         if session.state != StatesEnum.PREPARING.value:
             await self.send_message(update.message.chat_id, MessageHelper.cant_join_now)
             return
-        session_player = await self.app.store.game_sessions.get_session_player(
+        session_player = await self.app.store.players.get_session_player(
             db_session, update.message.user.id, session.id
         )
         if session_player:
@@ -107,7 +108,7 @@ class BotManager:
                 update.message.chat_id, MessageHelper.already_participates(update)
             )
             return
-        await self.app.store.game_sessions.add_player_to_session(
+        await self.app.store.players.add_player_to_session(
             db_session, update.message.user.id, session.id
         )
         await self.send_message(update.message.chat_id, MessageHelper.joined(update))
@@ -115,7 +116,7 @@ class BotManager:
     async def on_launch_game(
         self, db_session: AsyncSession, update: Update, session: GameSession = None
     ):
-        if not session or session.state == StatesEnum.ENDED.value:
+        if not is_session_running(session):
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
             return
         if session.state != StatesEnum.PREPARING.value:
@@ -140,18 +141,23 @@ class BotManager:
         self, db_session: AsyncSession, update: Update, session: GameSession = None
     ) -> None:
         """Verifying that everything ok then stopping the corresponding wait-word-timer and calling self.start_vote"""
-        if not session or session.state == StatesEnum.ENDED.value:
+        if not is_session_running(session):
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
             return
-        session_player = await self.app.store.game_sessions.get_session_player(
+        session_player = await self.app.store.players.get_session_player(
             db_session, update.message.user.id, session.id
         )
-        previous_word = await self.app.store.game_sessions.get_last_session_word(
+        if not session_player:
+            self.logger.error(
+                f"failed to get session_player with user_id={update.message.user.id}, session={session.id}"
+            )
+
+        previous_word = await self.app.store.words.get_last_session_word(
             db_session, session.id, approved=True
         )
         proposed_word = update.message.text
         prev_player_id = previous_word.proposed_by
-        req_answerer = await self.app.store.game_sessions.get_next_player(
+        req_answerer = await self.app.store.players.get_next_player(
             db_session, prev_player_id, session.id
         )
         if not session_player.player_id == req_answerer.id:
@@ -168,7 +174,7 @@ class BotManager:
         await self.send_message(
             update.message.chat_id, MessageHelper.word_proposed(update)
         )
-        word = await self.app.store.game_sessions.add_session_word(
+        word = await self.app.store.words.add_session_word(
             db_session,
             update.message.user.id,
             previous_word.id,
@@ -183,7 +189,7 @@ class BotManager:
         self, db_session: AsyncSession, update: Update, session: GameSession
     ) -> None:
         """Verifying that everything ok then calling self.vote"""
-        if not session or session.state == StatesEnum.ENDED.value:
+        if not is_session_running(session):
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
             return
         if session.state == StatesEnum.PREPARING.value:
@@ -196,10 +202,10 @@ class BotManager:
                 update.message.chat_id, MessageHelper.no_word_to_vote
             )
             return
-        word_to_vote = await self.app.store.game_sessions.get_last_session_word(
+        word_to_vote = await self.app.store.words.get_last_session_word(
             db_session, session.id
         )
-        existing_vote = await self.app.store.game_sessions.has_voted(
+        existing_vote = await self.app.store.votes.has_voted(
             db_session, update.message.user.id, word_to_vote.id
         )
         if existing_vote:
@@ -230,7 +236,7 @@ class BotManager:
             await self.app.store.game_sessions.set_session_state(
                 db_session, session.id, StatesEnum.ENDED.value
             )
-            session_players = await self.app.store.game_sessions.get_session_players(
+            session_players = await self.app.store.players.get_session_players(
                 db_session, session.id
             )
             await self.send_message(
@@ -248,22 +254,20 @@ class BotManager:
     async def confirm_chat_in_db(
         self, db_session: AsyncSession, update: Update
     ) -> None:
-        chat = await self.app.store.game_sessions.get_chat(
-            db_session, update.message.chat_id
-        )
+        chat = await self.app.store.chats.get_chat(db_session, update.message.chat_id)
         if not chat:
-            await self.app.store.game_sessions.add_chat_to_db(
+            await self.app.store.chats.add_chat_to_db(
                 db_session, update.message.chat_id
             )
 
     async def confirm_user_in_db(
         self, db_session: AsyncSession, update: Update
     ) -> None:
-        user = await self.app.store.game_sessions.get_player_by_id(
+        user = await self.app.store.players.get_player_by_id(
             db_session, update.message.user.id
         )
         if not user:
-            await self.app.store.game_sessions.add_player_to_db(
+            await self.app.store.players.add_player_to_db(
                 db_session, update.message.user.id, update.message.user.username
             )
 
@@ -272,13 +276,11 @@ class BotManager:
     ) -> Word:
         players = session.players
         required_order = list(generate_some_order(players))
-        await self.app.store.game_sessions.assign_players_order(
+        await self.app.store.players.assign_players_order(
             db_session, session.id, required_order
         )
-        first_word = await self.app.store.game_sessions.set_first_word(
-            db_session, session.id
-        )
-        first_player = await self.app.store.game_sessions.choose_first_player(
+        first_word = await self.app.store.words.set_first_word(db_session, session.id)
+        first_player = await self.app.store.players.choose_first_player(
             db_session, players, session.id
         )
         await self.app.store.game_sessions.set_session_state(
@@ -333,15 +335,13 @@ class BotManager:
         last_word: Word,
         from_timer: bool = None,
     ) -> None:
-        await self.app.store.game_sessions.drop_player(
-            db_session, player.id, session.id
-        )
+        await self.app.store.players.drop_player(db_session, player.id, session.id)
         if from_timer:
             await self.send_message(session.chat_id, MessageHelper.time_for_word_ended)
 
         # If only one real player is left (plus bot who has proposed the first word), then we need to end this
         # game session. So let's verify this
-        session_players = await self.app.store.game_sessions.get_session_players(
+        session_players = await self.app.store.players.get_session_players(
             db_session, session.id
         )
         remaining_players = [
@@ -350,7 +350,7 @@ class BotManager:
             if not player.is_dropped_out and player.player_id != BOT_ID
         ]
         if len(remaining_players) < 2:
-            remaining_player = await self.app.store.game_sessions.get_player_by_id(
+            remaining_player = await self.app.store.players.get_player_by_id(
                 db_session, remaining_players[0].player_id
             )
             await self.app.store.game_sessions.set_session_state(
@@ -366,7 +366,7 @@ class BotManager:
 
         # If there are more than one player left, set wait-for-word timer for the next one player. Game session state
         # remains as WAITING_WORD
-        next_player = await self.app.store.game_sessions.get_next_player(
+        next_player = await self.app.store.players.get_next_player(
             db_session, player.id, session.id
         )
         await db_session.commit()
@@ -383,26 +383,26 @@ class BotManager:
             await self.send_message(session.chat_id, MessageHelper.time_for_vote_ended)
         else:
             await self.send_message(session.chat_id, MessageHelper.all_players_voted)
-        word_to_vote = await self.app.store.game_sessions.get_last_session_word(
+        word_to_vote = await self.app.store.words.get_last_session_word(
             db_session, session.id
         )
         if not word_votes:
-            word_votes = await self.app.store.game_sessions.get_word_votes(
+            word_votes = await self.app.store.votes.get_word_votes(
                 db_session, word_to_vote.id
             )
 
         yes_votes = [vote for vote in word_votes if vote]
-        player = await self.app.store.game_sessions.get_player_by_id(
+        player = await self.app.store.players.get_player_by_id(
             db_session, word_to_vote.proposed_by
         )
-        next_player = await self.app.store.game_sessions.get_next_player(
+        next_player = await self.app.store.players.get_next_player(
             db_session, player.id, session.id
         )
         if len(word_votes) == 0 or len(yes_votes) / len(word_votes) >= 0.5:
-            await self.app.store.game_sessions.set_vote_result(
+            await self.app.store.words.set_vote_result(
                 db_session, word_to_vote.id, True
             )
-            points = await self.app.store.game_sessions.accrue_points(
+            points = await self.app.store.players.accrue_points(
                 db_session, word_to_vote.proposed_by, session.id, word_to_vote.word
             )
             await self.app.store.game_sessions.set_session_state(
@@ -414,7 +414,7 @@ class BotManager:
             )
             await self.wait_word(session, next_player, word_to_vote)
         else:
-            await self.app.store.game_sessions.set_vote_result(
+            await self.app.store.words.set_vote_result(
                 db_session, word_to_vote.id, False
             )
             await self.drop_player(db_session, session, next_player, word_to_vote)
@@ -435,7 +435,7 @@ class BotManager:
         dropped, and not to be the one proposing the word. So here we are, checking this...
         """
         player_id = update.message.user.id
-        session_players = await self.app.store.game_sessions.get_session_players(
+        session_players = await self.app.store.players.get_session_players(
             db_session, session.id
         )
         filtered = list(
@@ -461,7 +461,7 @@ class BotManager:
         session_players: list[SessionPlayer],
     ):
         """Make the record in db about the vote from player and, if all players have voted, cancel wait-vote timer"""
-        await self.app.store.game_sessions.vote(
+        await self.app.store.votes.vote(
             db_session, update.message.user.id, update.message.text, word_to_vote.id
         )
         await self.send_message(
@@ -482,7 +482,7 @@ class BotManager:
         session_players: list[SessionPlayer],
     ) -> Optional[list[bool]]:
         """Verifying everyone remaining (excluding bot) has voted"""
-        word_votes = await self.app.store.game_sessions.get_word_votes(
+        word_votes = await self.app.store.votes.get_word_votes(
             db_session, session_word.id
         )
         remaining_players = [

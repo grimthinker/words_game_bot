@@ -7,6 +7,7 @@ bot:
   vk_token: vk_token
   tg_token: tg_token
   group_id: 1
+  api: tg
 game:
   word_wait_time: 0.5
   vote_wait_time: 0.5

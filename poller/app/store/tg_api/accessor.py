@@ -42,38 +42,8 @@ class TGApiAccessor(BaseAccessor):
             b_data = await resp.read()
             await self.app.store.rabbit_accessor.send_to_queue(b_data)
 
-    async def send_message(self, chat_id, message):
-        query = self._build_query(
-            api_path=self.API_PATH,
-            method="/sendMessage",
-            params={
-                "chat_id": chat_id,
-                "text": message,
-            },
-        )
-        async with self.session.get(query) as resp:
-            data = await resp.json()
-            if data["ok"]:
-                self.logger.info("message's sent to tg chat")
-            return None
-
     @staticmethod
     def _build_query(api_path: str, method: str, params: dict) -> str:
         url = api_path + method + "?"
         url += "&".join([f"{k}={v}" for k, v in params.items()])
         return url
-
-    async def delete_message(self, chat_id, message_id):
-        query = self._build_query(
-            api_path=self.API_PATH,
-            method="/deleteMessage",
-            params={
-                "chat_id": chat_id,
-                "message_id": message_id,
-            },
-        )
-        async with self.session.get(query) as resp:
-            data = await resp.json()
-            if data["ok"]:
-                self.logger.info("message's deleted")
-            return None
