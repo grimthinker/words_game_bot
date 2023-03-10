@@ -1,15 +1,13 @@
 import typing
-import os
-import yaml
 
 from hashlib import sha256
-from sqlalchemy import select, delete, text
+from sqlalchemy import select
 
-from bot_app.app.admin.models import Admin, AdminModel
-from bot_app.app.base.base_accessor import BaseAccessor
+from app.admin.models import Admin, AdminModel
+from app.base.base_accessor import BaseAccessor
 
 if typing.TYPE_CHECKING:
-    from bot_app.app.web.app import Application
+    from app.web.app import Application
 
 
 class AdminAccessor(BaseAccessor):
