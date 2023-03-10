@@ -1,3 +1,4 @@
+
 version: "3"
 
 services:
@@ -12,16 +13,15 @@ services:
     volumes:
       - pg_volume:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
-    network_mode: host
+      - "5552:5432"
 
   rabbitmq:
     image: rabbitmq:3.10.7-management
     hostname: rabbitmq
     restart: always
     ports:
-      - "15672:15672"
-      - "5672:5672"
+      - "15772:15672"
+      - "5772:5672"
 
   poller:
     container_name: poller_container
@@ -32,8 +32,9 @@ services:
     depends_on:
       - db
       - rabbitmq
+    links:
+      - rabbitmq
     command: bash -c "python main.py"
-    network_mode: host
 
   bot:
     container_name: bot_container
@@ -44,23 +45,10 @@ services:
     depends_on:
       - db
       - rabbitmq
-    command: bash -c "alembic upgrade head && python main.py"
-    network_mode: host
-
-  pgadmin:
-    container_name: pgadmin4_container
-    image: dpage/pgadmin4
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: root
-    ports:
-      - "5050:5050"
-    volumes:
-      - pgadmin_volume:/var/lib/pgadmin
-    network_mode: host
-    depends_on:
+    links:
+      - rabbitmq
       - db
+    command: bash -c "alembic upgrade head && python main.py"
 
 volumes:
   pg_volume:
-  pgadmin_volume:

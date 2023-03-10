@@ -72,6 +72,8 @@ class BotManager:
                 await self.on_launch_game(db_session, update, session)
             elif update.message.text in ["/yes", "/no"]:
                 await self.on_vote(db_session, update, session)
+            elif update.message.text == "/info":
+                await self.on_info(db_session, update, session)
             elif update.message.text == "/end":
                 await self.on_end_session(db_session, update, session)
             else:
@@ -131,7 +133,7 @@ class BotManager:
             return
         if len(session.players) < 2:
             await self.send_message(
-                update.message.chat_id, MessageHelper.too_dew_players
+                update.message.chat_id, MessageHelper.too_few_players
             )
             return
         await self.send_message(update.message.chat_id, MessageHelper.launched)
@@ -227,24 +229,36 @@ class BotManager:
             return
         await self.vote(db_session, update, word_to_vote, session, session_players)
 
+    async def on_info(self, db_session: AsyncSession, update: Update, session: GameSession
+    ):
+        if session:
+            pass
+        else:
+            pass
+
     async def on_end_session(
         self, db_session: AsyncSession, update: Update, session: GameSession
     ):
-        if session.creator.id == update.message.user.id:
-            remove_timer(self.word_timers, session.id)
-            remove_timer(self.vote_timers, session.id)
-            await self.app.store.game_sessions.set_session_state(
-                db_session, session.id, StatesEnum.ENDED.value
-            )
-            session_players = await self.app.store.players.get_session_players(
-                db_session, session.id
-            )
-            await self.send_message(
-                update.message.chat_id, MessageHelper.game_results(session_players)
-            )
+        if session:
+            if session.creator.id == update.message.user.id:
+                remove_timer(self.word_timers, session.id)
+                remove_timer(self.vote_timers, session.id)
+                await self.app.store.game_sessions.set_session_state(
+                    db_session, session.id, StatesEnum.ENDED.value
+                )
+                session_players = await self.app.store.players.get_session_players(
+                    db_session, session.id
+                )
+                await self.send_message(
+                    update.message.chat_id, MessageHelper.game_results(session_players)
+                )
+            else:
+                await self.send_message(
+                    update.message.chat_id, MessageHelper.cant_end
+                )
         else:
-            self.app.store.external_api.delete_message(
-                update.message.chat_id, update.message.id
+            await self.send_message(
+                update.message.chat_id, MessageHelper.no_session
             )
 
     async def send_message(self, chat_id: int, message: str) -> None:

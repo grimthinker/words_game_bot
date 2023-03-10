@@ -1,7 +1,5 @@
 import typing
 
-from app.store.constants import API
-
 if typing.TYPE_CHECKING:
     from app.web.app import Application
 

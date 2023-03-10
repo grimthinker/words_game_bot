@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import yaml
 
 if typing.TYPE_CHECKING:
-    from bot_app.app.web.app import Application
+    from app.web.app import Application
 
 
 @dataclass
@@ -16,6 +16,12 @@ class SessionConfig:
 class AdminConfig:
     email: str
     password: str
+
+
+@dataclass
+class RabbitMQConfig:
+    host: str
+    port: int
 
 
 @dataclass
@@ -46,6 +52,7 @@ class DatabaseConfig:
 class Config:
     admin: AdminConfig
     session: SessionConfig = None
+    rabbitmq: RabbitMQConfig = None
     bot: BotConfig = None
     game: GameConfig = None
     database: DatabaseConfig = None
@@ -67,6 +74,10 @@ def setup_config(app: "Application", config_path: str):
             word_wait_time=raw_config["game"]["word_wait_time"],
             vote_wait_time=raw_config["game"]["vote_wait_time"],
             random_start=raw_config["game"]["random_start"],
+        ),
+        rabbitmq=RabbitMQConfig(
+            host=raw_config["rabbitmq"]["host"],
+            port=raw_config["rabbitmq"]["port"],
         ),
         bot=BotConfig(
             vk_token=raw_config["bot"]["vk_token"],

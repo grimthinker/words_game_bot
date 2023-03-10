@@ -16,7 +16,8 @@ from app.store.bot.constants import BOT_ID, BOT_NAME
 from app.web.app import setup_app
 from app.web.config import Config
 
-from bot.app.store.bot.helpers import remove_timer
+from app.game_session.models import Chat
+from app.store.bot.helpers import remove_timer
 
 
 @pytest.fixture(scope="session")
@@ -118,3 +119,4 @@ async def bot(cli, db_session, config: Config) -> Player:
     async with db_session.begin() as session:
         session.add(bot)
     return Player(id=bot.id, name=bot.name)
+
