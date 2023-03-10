@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.base.base_accessor import BaseAccessor
-from app.game_session.models import (
+from app.game.models import (
     PlayerModel,
     Player,
     PlayersSessions,

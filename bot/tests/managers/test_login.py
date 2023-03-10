@@ -1,8 +1,10 @@
+import pytest
 from app.store import Store
 from tests.utils import ok_response
 
 
 class TestAdminLoginView:
+    @pytest.mark.asyncio
     async def test_create_on_startup(self, store: Store, config):
         admin = await store.admins.get_by_email(config.admin.email)
         assert admin is not None
@@ -11,6 +13,7 @@ class TestAdminLoginView:
         assert admin.password != config.admin.password
         assert admin.id == 1
 
+    @pytest.mark.asyncio
     async def test_success(self, cli, config):
         resp = await cli.post(
             "/admin.login",
@@ -28,6 +31,7 @@ class TestAdminLoginView:
             }
         )
 
+    @pytest.mark.asyncio
     async def test_missed_email(self, cli):
         resp = await cli.post(
             "/admin.login",
@@ -40,6 +44,7 @@ class TestAdminLoginView:
         assert data["status"] == "bad_request"
         assert data["data"]["email"][0] == "Missing data for required field."
 
+    @pytest.mark.asyncio
     async def test_not_valid_credentials(self, cli):
         resp = await cli.post(
             "/admin.login",
@@ -52,6 +57,7 @@ class TestAdminLoginView:
         data = await resp.json()
         assert data["status"] == "forbidden"
 
+    @pytest.mark.asyncio
     async def test_different_method(self, cli):
         resp = await cli.get(
             "/admin.login",

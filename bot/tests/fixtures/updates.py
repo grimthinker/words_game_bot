@@ -1,6 +1,7 @@
 import pytest
+import pytest_asyncio
 
-from app.game_session.models import StatesEnum, Player, Chat
+from app.game.models import StatesEnum, Player, Chat
 from app.base.dataclasses import UpdateUser, UpdateMessage, Update
 
 update_ids = iter(range(1000))
@@ -19,76 +20,76 @@ def make_update(author: Player, chat: Chat, text: str) -> Update:
     )
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def start_game_update(creator_1: Player, chat_1: Chat) -> Update:
     return make_update(creator_1, chat_1, "/start")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def participate_update_player_1(player_1: Player, chat_1: Chat) -> Update:
     return make_update(player_1, chat_1, "/participate")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def participate_update_player_2(player_2: Player, chat_1: Chat) -> Update:
     return make_update(player_2, chat_1, "/participate")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def launch_game_update(creator_1: Player, chat_1: Chat) -> Update:
     return make_update(creator_1, chat_1, "/launch")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def end_game_update(creator_1: Player, chat_1: Chat) -> Update:
     return make_update(creator_1, chat_1, "/end")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def wrong_end_game_update(player_1: Player, chat_1: Chat) -> Update:
     return make_update(player_1, chat_1, "/end")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def word_update_player_1(player_1: Player, chat_1: Chat) -> Update:
     return make_update(player_1, chat_1, "арк")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def word_update_player_2(player_2: Player, chat_1: Chat) -> Update:
     return make_update(player_2, chat_1, "арк")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def word_update_creator_1(creator_1: Player, chat_1: Chat) -> Update:
     return make_update(creator_1, chat_1, "арк")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def wrong_word_update_player_1(player_1: Player, chat_1: Chat) -> Update:
     return make_update(player_1, chat_1, "куст")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def wrong_word_update_creator_1(creator_1: Player, chat_1: Chat) -> Update:
     return make_update(creator_1, chat_1, "куст")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def creator_vote_yes_update(creator_1: Player, chat_1: Chat) -> Update:
     return make_update(creator_1, chat_1, "/yes")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def creator_vote_no_update(creator_1: Player, chat_1: Chat) -> Update:
     return make_update(creator_1, chat_1, "/no")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def player_vote_yes_update(player_1: Player, chat_1: Chat) -> Update:
     return make_update(player_1, chat_1, "/yes")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def player_vote_no_update(player_1: Player, chat_1: Chat) -> Update:
     return make_update(player_1, chat_1, "/no")

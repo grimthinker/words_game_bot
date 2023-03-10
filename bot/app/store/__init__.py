@@ -12,12 +12,14 @@ class Store:
         from app.store.tg_api.accessor import TGApiAccessor
         from app.store.vk_api.accessor import VkApiAccessor
         from app.store.bot.manager import BotManager
+        from app.store.admin.accessor import AdminAccessor
         from app.store.game_session.accessor import GameSessionAccessor
         from app.store.chat.accessor import ChatAccessor
         from app.store.player.accessor import PlayerAccessor
         from app.store.vote.accessor import VoteAccessor
         from app.store.word.accessor import WordAccessor
 
+        self.admins = AdminAccessor(app)
         self.game_sessions = GameSessionAccessor(app)
         self.chats = ChatAccessor(app)
         self.players = PlayerAccessor(app)

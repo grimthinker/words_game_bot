@@ -4,7 +4,7 @@ from typing import Union, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.game_session.models import GameSession, StatesEnum, Player, Word, SessionPlayer
+from app.game.models import GameSession, StatesEnum, Player, Word, SessionPlayer
 from app.store.bot.constants import (
     BOT_ID,
     BOT_NAME,
@@ -229,7 +229,8 @@ class BotManager:
             return
         await self.vote(db_session, update, word_to_vote, session, session_players)
 
-    async def on_info(self, db_session: AsyncSession, update: Update, session: GameSession
+    async def on_info(
+        self, db_session: AsyncSession, update: Update, session: GameSession
     ):
         if session:
             pass
@@ -253,13 +254,9 @@ class BotManager:
                     update.message.chat_id, MessageHelper.game_results(session_players)
                 )
             else:
-                await self.send_message(
-                    update.message.chat_id, MessageHelper.cant_end
-                )
+                await self.send_message(update.message.chat_id, MessageHelper.cant_end)
         else:
-            await self.send_message(
-                update.message.chat_id, MessageHelper.no_session
-            )
+            await self.send_message(update.message.chat_id, MessageHelper.no_session)
 
     async def send_message(self, chat_id: int, message: str) -> None:
         params = {"chat_id": chat_id, "message": message}

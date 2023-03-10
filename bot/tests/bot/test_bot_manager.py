@@ -1,13 +1,15 @@
 import asyncio
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.store import Store
-from app.game_session.models import StatesEnum, Player, Chat
+from app.game.models import StatesEnum, Player, Chat
 from app.store.tg_api.dataclasses import Update
 
 
 class TestHandleBaseUpdates:
+    @pytest.mark.asyncio
     async def test_handle_start_game(
         self, store: Store, start_game_update: Update, creator_1: Player
     ):
@@ -15,6 +17,7 @@ class TestHandleBaseUpdates:
         await store.bots_manager.handle_update(update=start_game_update)
         assert store.external_api.send_message.call_count == 1
 
+    @pytest.mark.asyncio
     async def test_handle_participate(
         self, store: Store, preparing_state, participate_update_player_1
     ):
@@ -22,18 +25,20 @@ class TestHandleBaseUpdates:
         await store.bots_manager.handle_update(update=participate_update_player_1)
         assert store.external_api.send_message.call_count == 2
 
+    @pytest.mark.asyncio
     async def test_handle_launch(
         self,
         store: Store,
-        preparing_state,
         participate_update_player_1,
+        preparing_state,
         launch_game_update: Update,
     ):
-        """"""
+        """Trying to launch a game session"""
         await store.bots_manager.handle_update(update=participate_update_player_1)
         await store.bots_manager.handle_update(update=launch_game_update)
         assert store.external_api.send_message.call_count == 4
 
+    @pytest.mark.asyncio
     async def test_handle_right_word(
         self,
         store: Store,
@@ -63,6 +68,7 @@ class TestHandleBaseUpdates:
             )
             assert game_session.state == StatesEnum.VOTE.value
 
+    @pytest.mark.asyncio
     async def test_handle_wrong_word(
         self,
         store: Store,
@@ -92,6 +98,7 @@ class TestHandleBaseUpdates:
             )
         assert game_session.state == StatesEnum.WAITING_WORD.value
 
+    @pytest.mark.asyncio
     async def test_handle_two_full_turns(
         self,
         store: Store,
@@ -143,6 +150,7 @@ class TestHandleBaseUpdates:
         # now it should be time wor a vote
         assert game_session.state == StatesEnum.VOTE.value
 
+    @pytest.mark.asyncio
     async def test_handle_one_yes_vote(
         self,
         store: Store,
@@ -172,6 +180,7 @@ class TestHandleBaseUpdates:
             )
         assert game_session.state == StatesEnum.WAITING_WORD.value
 
+    @pytest.mark.asyncio
     async def test_handle_one_no_vote(
         self,
         store: Store,
@@ -202,6 +211,7 @@ class TestHandleBaseUpdates:
             )
         assert game_session
 
+    @pytest.mark.asyncio
     async def test_handle_repeating_yes_vote(
         self,
         store: Store,
@@ -235,6 +245,7 @@ class TestHandleBaseUpdates:
             )
         assert game_session.state == StatesEnum.VOTE.value
 
+    @pytest.mark.asyncio
     async def test_word_timeout(
         self,
         db_session: AsyncSession,
@@ -259,6 +270,7 @@ class TestHandleBaseUpdates:
                 is_dropped_out = True
         assert is_dropped_out
 
+    @pytest.mark.asyncio
     async def test_vote_timeout(
         self,
         db_session: AsyncSession,
@@ -276,6 +288,7 @@ class TestHandleBaseUpdates:
             )
         assert game_session.state == StatesEnum.WAITING_WORD.value
 
+    @pytest.mark.asyncio
     async def test_handle_end_update_from_word_wait(
         self,
         db_session,
@@ -294,6 +307,7 @@ class TestHandleBaseUpdates:
             )
         assert game_session
 
+    @pytest.mark.asyncio
     async def test_handle_end_update_from_voting(
         self,
         db_session: AsyncSession,
@@ -312,6 +326,7 @@ class TestHandleBaseUpdates:
             )
         assert game_session
 
+    @pytest.mark.asyncio
     async def test_handle_end_update_from_preparing(
         self,
         db_session: AsyncSession,

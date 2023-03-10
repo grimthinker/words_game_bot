@@ -1,10 +1,8 @@
 import asyncio
-import enum
-import json
 import random
-from typing import Union, Optional
+from typing import Union
 
-from app.game_session.models import SessionPlayer, Player, Word, GameSession, StatesEnum
+from app.game.models import SessionPlayer, Player, Word, GameSession, StatesEnum
 from app.base.dataclasses import Update
 from app.store.tg_api.dataclasses import TGUpdate
 
@@ -38,11 +36,11 @@ def generate_some_order(lst: list):
     return ((lst[x - 1], lst[x]) for x in range(len(lst)))
 
 
-def correct_text(update: Update):
+def correct_text(update: Update) -> str:
     update.message.text = update.message.text.split("@")[0]
 
 
-def check_word(proposed_word: str, previous_word: str):
+def check_word(proposed_word: str, previous_word: str) -> bool:
     # Rules on how to decide whether we let the word to the vote
     return proposed_word[0] == previous_word[-1]
 
@@ -83,67 +81,67 @@ class MessageHelper:
     everyone_voted = "Everyone has voted, let's check the result"
 
     @staticmethod
-    def started(update: Update):
+    def started(update: Union[Update, TGUpdate]) -> str:
         return f"{update.message.user.username} has joined the game. Now wait for players to /participate, then /launch the game"
 
     @staticmethod
-    def already_participates(update: Union[Update, TGUpdate]):
+    def already_participates(update: Union[Update, TGUpdate]) -> str:
         return f"{update.message.user.username} already in the game"
 
     @staticmethod
-    def joined(update: Union[Update, TGUpdate]):
+    def joined(update: Union[Update, TGUpdate]) -> str:
         return f"{update.message.user.username} has joined the game"
 
     @staticmethod
-    def not_creator_to_launch(update: Union[Update, TGUpdate]):
+    def not_creator_to_launch(update: Union[Update, TGUpdate]) -> str:
         return f"{update.message.user.username} is not the creator of the session to launch it"
 
     @staticmethod
-    def wrong_player_turn(update: Union[Update, TGUpdate]):
+    def wrong_player_turn(update: Union[Update, TGUpdate]) -> str:
         return f"Now is not {update.message.user.username} turn"
 
     @staticmethod
-    def word_doesnt_fit(update: Union[Update, TGUpdate]):
+    def word_doesnt_fit(update: Union[Update, TGUpdate]) -> str:
         return f"The word {update.message.text} does not fit"
 
     @staticmethod
-    def word_proposed(update: Union[Update, TGUpdate]):
+    def word_proposed(update: Union[Update, TGUpdate]) -> str:
         return (
             f"{update.message.user.username} proposes a word: '{update.message.text}'"
         )
 
     @staticmethod
-    def cant_vote(update: Union[Update, TGUpdate]):
+    def cant_vote(update: Union[Update, TGUpdate]) -> str:
         return f"{update.message.user.username} cannot vote"
 
     @staticmethod
-    def already_voted(update: Union[Update, TGUpdate]):
+    def already_voted(update: Union[Update, TGUpdate]) -> str:
         return f"{update.message.user.username} has already voted"
 
     @staticmethod
-    def on_someones_vote(update: Union[Update, TGUpdate], word: Word):
+    def on_someones_vote(update: Union[Update, TGUpdate], word: Word) -> str:
         return f"{update.message.user.username} votes '{update.message.text}' for '{word.word}'"
 
     @staticmethod
-    def game_results(session_players: list[SessionPlayer]):
+    def game_results(session_players: list[SessionPlayer]) -> str:
         return f"Game ended. Results: " + list_results(session_players)
 
     @staticmethod
-    def announce_winner(player: Player):
+    def announce_winner(player: Player) -> str:
         return f"The winner is {player.name}!"
 
     @staticmethod
-    def remind_word_for_next(word: Word, player: Player):
+    def remind_word_for_next(word: Word, player: Player) -> str:
         return f"The word: '{word.word}'. Player {player.name}, propose your word!"
 
     @staticmethod
-    def vote_for_word(word: Word):
+    def vote_for_word(word: Word) -> str:
         return f"The proposed word: '{word.word}'. Vote /yes or /no if it's an existing word!"
 
     @staticmethod
-    def vote_result_negative(word: Word, player: Player):
+    def vote_result_negative(word: Word, player: Player) -> str:
         return f"{word.word} is not counted as a word! {player.name} is lost"
 
     @staticmethod
-    def vote_result_positive(word: Word, player: Player, points: int):
+    def vote_result_positive(word: Word, player: Player, points: int) -> str:
         return f"{word.word} is counted as a word! {player.name} has earned {points} points"

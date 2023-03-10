@@ -1,24 +1,24 @@
 import pytest
+import pytest_asyncio
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.store import Store
-from app.game_session.models import StatesEnum, Player, Chat
+from app.game.models import StatesEnum, Player, Chat
 from app.store.tg_api.dataclasses import Update
 
 
-@pytest.fixture
-async def preparing_state(store: Store, creator_1: Player, start_game_update: Update):
+@pytest_asyncio.fixture
+async def preparing_state(store: Store, start_game_update: Update):
     await store.bots_manager.handle_update(update=start_game_update)
     yield
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def waiting_word_state(
     store: Store,
     preparing_state,
     launch_game_update: Update,
-    creator_1: Player,
     participate_update_player_1: Update,
 ):
     await store.bots_manager.handle_update(update=participate_update_player_1)
@@ -26,13 +26,12 @@ async def waiting_word_state(
     yield
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def waiting_votes_state(
     store: Store,
-    db_session: AsyncSession,
     waiting_word_state,
+    db_session: AsyncSession,
     player_1: Player,
-    creator_1: Player,
     word_update_player_1: Update,
     word_update_creator_1: Update,
 ):
@@ -48,14 +47,13 @@ async def waiting_votes_state(
         await store.bots_manager.handle_update(update=word_update_creator_1)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def waiting_votes_state_three_players(
     store: Store,
     db_session: AsyncSession,
-    player_1: Player,
-    player_2: Player,
-    creator_1: Player,
     preparing_state,
+    player_1: Player,
+    creator_1: Player,
     participate_update_player_1: Update,
     participate_update_player_2: Update,
     launch_game_update: Update,
