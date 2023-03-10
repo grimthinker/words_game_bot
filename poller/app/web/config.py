@@ -4,7 +4,13 @@ from dataclasses import dataclass
 import yaml
 
 if typing.TYPE_CHECKING:
-    from bot_app.app.web.app import Application
+    from app.web.app import Application
+
+
+@dataclass
+class RabbitMQConfig:
+    host: str
+    port: int
 
 
 @dataclass
@@ -17,6 +23,7 @@ class BotConfig:
 
 @dataclass
 class Config:
+    rabbitmq: RabbitMQConfig = None
     bot: BotConfig = None
 
 
@@ -25,6 +32,10 @@ def setup_config(app: "Application", config_path: str):
         raw_config = yaml.safe_load(f)
 
     app.config = Config(
+        rabbitmq=RabbitMQConfig(
+            host=raw_config["rabbitmq"]["host"],
+            port=raw_config["rabbitmq"]["port"],
+        ),
         bot=BotConfig(
             vk_token=raw_config["bot"]["vk_token"],
             tg_token=raw_config["bot"]["tg_token"],

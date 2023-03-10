@@ -3,6 +3,9 @@ session:
 admin:
   email: admin@admin.com
   password: admin
+rabbitmq:
+  host: rabbitmq
+  port: 5672
 bot:
   vk_token: vk_token
   tg_token: tg_token

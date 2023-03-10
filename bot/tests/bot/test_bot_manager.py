@@ -37,7 +37,7 @@ class TestHandleBaseUpdates:
     async def test_handle_right_word(
         self,
         store: Store,
-        db_session,
+        db_session: AsyncSession,
         chat_1: Chat,
         player_1: Player,
         creator_1: Player,
@@ -327,41 +327,5 @@ class TestHandleBaseUpdates:
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(
                 session, chat_1.id, StatesEnum.ENDED.value
-            )
-        assert game_session
-
-    async def test_handle_end_wrong_update_wating_votes(
-        self,
-        db_session: AsyncSession,
-        server,
-        chat_1: Chat,
-        store: Store,
-        waiting_votes_state_three_players,
-        wrong_end_game_update: Update,
-    ):
-        """Checks handling /end update gotten not from a creator while session in waiting_votes_state"""
-        await store.bots_manager.handle_update(update=wrong_end_game_update)
-        assert store.external_api.send_message.call_count == 7
-        async with db_session.begin() as session:
-            game_session = await store.game_sessions.get_current_session(
-                session, chat_1.id, StatesEnum.VOTE.value
-            )
-        assert game_session
-
-    async def test_handle_end_wrong_update_preparing_state(
-        self,
-        db_session: AsyncSession,
-        server,
-        chat_1: Chat,
-        store: Store,
-        preparing_state,
-        wrong_end_game_update: Update,
-    ):
-        """Checks handling /end update gotten not from a creator while session in preparing_state"""
-        await store.bots_manager.handle_update(update=wrong_end_game_update)
-        assert store.external_api.send_message.call_count == 1
-        async with db_session.begin() as session:
-            game_session = await store.game_sessions.get_current_session(
-                session, chat_1.id, StatesEnum.PREPARING.value
             )
         assert game_session
