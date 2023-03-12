@@ -180,8 +180,6 @@ class TestHandleBaseUpdates:
             await store.bots_manager.handle_update(update=creator_vote_yes_update)
         else:
             await store.bots_manager.handle_update(update=player_vote_yes_update)
-        for x in store.external_api.send_message.mock_calls:
-            print(x.kwargs["message"])
         assert store.external_api.send_message.call_count == 10
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(
@@ -251,8 +249,6 @@ class TestHandleBaseUpdates:
         else:
             for _ in range(3):
                 await store.bots_manager.handle_update(update=creator_vote_yes_update)
-        for x in store.external_api.send_message.mock_calls:
-            print(x.kwargs["message"])
         assert store.external_api.send_message.call_count == 10
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(

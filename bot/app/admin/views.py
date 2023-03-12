@@ -10,7 +10,7 @@ from app.web.mixins import AuthRequiredMixin
 
 
 class AdminLoginView(View):
-    @docs(tags=["admin"], summary="Login admin", description="Add new user to database")
+    @docs(tags=["admin"], summary="Login admin", description="Add new admin to database")
     @request_schema(AdminSchema)
     @response_schema(AdminSchema, 200)
     async def post(self):
@@ -18,7 +18,6 @@ class AdminLoginView(View):
         existed_admin = await self.store.admins.get_by_email(email)
         if not existed_admin:
             raise HTTPForbidden(reason="no admin with that email")
-
         password = self.data["password"]
         if not existed_admin.is_password_valid(password):
             raise HTTPForbidden(reason="wrong password")
@@ -30,6 +29,7 @@ class AdminLoginView(View):
 
 
 class AdminCurrentView(AuthRequiredMixin, View):
+    @docs(tags=["admin"], summary="Current admin", description="Show current admin")
     @response_schema(AdminSchema)
     async def get(self):
         return json_response(AdminSchema().dump(self.request.admin))
