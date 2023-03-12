@@ -53,6 +53,8 @@ class Database:
                 "game_sessions",
                 "session_words",
                 "votes",
+                "game_rules",
+                "time_settings",
             )
             for table in tables:
                 await session.execute(text(f"TRUNCATE {table} CASCADE"))

@@ -31,7 +31,9 @@ class GameSessionAccessor(BaseAccessor):
             players = await self.app.store.players.get_players(db_session, session.id)
             return GameSessionModel.to_dc(session, creator, players)
 
-    async def create_session(self, db_session: AsyncSession, chat_id: int, creator_id):
+    async def create_session(
+        self, db_session: AsyncSession, chat_id: int, creator_id
+    ) -> int:
         session = GameSessionModel(
             chat_id=chat_id, creator_id=creator_id, state=StatesEnum.PREPARING.value
         )
@@ -39,6 +41,7 @@ class GameSessionAccessor(BaseAccessor):
         await db_session.flush()
         association = PlayersSessions(player_id=creator_id, session_id=session.id)
         db_session.add(association)
+        return session.id
 
     async def get_sessions(
         self, db_session: AsyncSession, **kwargs

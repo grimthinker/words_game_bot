@@ -41,5 +41,5 @@ def setup_config(app: "Application", config_path: str):
             tg_token=raw_config["bot"]["tg_token"],
             group_id=raw_config["bot"]["group_id"],
             api=raw_config["bot"]["api"],
-        )
+        ),
     )
