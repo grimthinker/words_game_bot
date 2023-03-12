@@ -11,6 +11,8 @@ from app.game.models import (
     PlayersSessions,
 )
 
+from app.game.schemes import PlayerSchema
+
 
 class GameSessionAccessor(BaseAccessor):
     async def get_current_session(
@@ -22,6 +24,7 @@ class GameSessionAccessor(BaseAccessor):
             stmt = stmt.filter(GameSessionModel.state == state)
         else:
             stmt = stmt.filter(GameSessionModel.state != StatesEnum.ENDED.value)
+        stmt = stmt.order_by(GameSessionModel.id.desc())
         result = await db_session.execute(stmt)
         session = result.scalars().first()
         if session:
@@ -47,6 +50,8 @@ class GameSessionAccessor(BaseAccessor):
         self, db_session: AsyncSession, **kwargs
     ) -> list[GameSession]:
         stmt = select(GameSessionModel)
+        if kwargs.get("state"):
+            stmt = stmt.filter(GameSessionModel.state == kwargs.get("state"))
         if kwargs.get("chat_id"):
             stmt = stmt.filter(GameSessionModel.chat_id == kwargs.get("chat_id"))
         if kwargs.get("state_not"):

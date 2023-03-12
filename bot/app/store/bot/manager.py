@@ -64,6 +64,7 @@ class BotManager:
                 db_session, update.message.chat_id
             )
             update = await self.delete_if_wrong_message(update, session)
+
             if not update:
                 return
             elif update.message.text == "/start":
@@ -151,6 +152,7 @@ class BotManager:
         if not is_session_running(session):
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
             return
+
         session_player = await self.app.store.players.get_session_player(
             db_session, update.message.user.id, session.id
         )
@@ -173,17 +175,20 @@ class BotManager:
             text=proposed_word,
             approved=True,
         )
+
         if not session_player.player_id == req_answerer.id:
             await self.send_message(
                 update.message.chat_id, MessageHelper.wrong_player_turn(update)
             )
             return
+
         if same_word:
             await self.send_message(
                 update.message.chat_id, MessageHelper.used_word(update)
             )
             return
         rules = await self.app.store.game_rules.get_rules(db_session, session.id)
+
         if not check_word(proposed_word, previous_word.word, rules):
             await self.send_message(
                 update.message.chat_id, MessageHelper.word_doesnt_fit(update)
@@ -192,6 +197,7 @@ class BotManager:
         await self.send_message(
             update.message.chat_id, MessageHelper.word_proposed(update)
         )
+
         word = await self.app.store.words.add_session_word(
             db_session,
             update.message.user.id,
@@ -200,6 +206,7 @@ class BotManager:
             session.id,
         )
         await self.start_vote(db_session, session, word)
+
         await db_session.commit()
         remove_timer(self.word_timers, session.id)
 
@@ -223,14 +230,7 @@ class BotManager:
         word_to_vote = await self.app.store.words.get_last_session_word(
             db_session, session.id, approved=None
         )
-        existing_vote = await self.app.store.votes.has_voted(
-            db_session, update.message.user.id, word_to_vote.id
-        )
-        if existing_vote:
-            await self.send_message(
-                update.message.chat_id, MessageHelper.already_voted(update)
-            )
-            return
+
         session_players = await self.check_vote_allowance(
             db_session, update, word_to_vote, session
         )
@@ -243,6 +243,7 @@ class BotManager:
         # Very likely we don't need to check this, but I'm only 98% sure
         if word_to_vote.approved:
             return
+
         await self.vote(db_session, update, word_to_vote, session, session_players)
 
     async def on_info(
@@ -503,12 +504,29 @@ class BotManager:
         session_players: list[SessionPlayer],
     ):
         """Make the record in db about the vote from player and, if all players have voted, cancel wait-vote timer"""
-        await self.app.store.votes.vote(
-            db_session, update.message.user.id, update.message.text, word_to_vote.id
+
+        vote = True if update.message.text == "/yes" else False
+        existing_vote = await self.app.store.votes.has_voted(
+            db_session, update.message.user.id, word_to_vote.id
         )
-        await self.send_message(
-            session.chat_id, MessageHelper.on_someones_vote(update, word_to_vote)
-        )
+        if existing_vote and vote != existing_vote:
+            await self.app.store.votes.revote(
+                db_session, update.message.user.id, vote, word_to_vote.id
+            )
+            await self.send_message(
+                session.chat_id, MessageHelper.on_someones_revote(update, word_to_vote)
+            )
+        elif existing_vote and vote == existing_vote:
+            await self.send_message(
+                session.chat_id, MessageHelper.already_voted(update, word_to_vote)
+            )
+        else:
+            await self.app.store.votes.vote(
+                db_session, update.message.user.id, vote, word_to_vote.id
+            )
+            await self.send_message(
+                session.chat_id, MessageHelper.on_someones_vote(update, word_to_vote)
+            )
         all_voted = await self.check_if_all_voted(
             db_session, word_to_vote, session_players
         )

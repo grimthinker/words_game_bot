@@ -46,12 +46,15 @@ class RabbitAccessor(BaseAccessor):
     async def disconnect(self, app: "Application"):
         self.is_running = False
         for worker in self.workers:
-            await worker.cancel()
+            worker.cancel()
         if self.connection:
             await self.connection.close()
 
     async def on_message(self, message: AbstractIncomingMessage):
         raw_upd_json = message.body.decode("utf-8")
+
+        self.logger.info("got a message from rabbitmq:")
+        self.logger.info(raw_upd_json)
         raw_updates = json.loads(raw_upd_json)
         if "updates" in raw_updates:
             for raw_update in raw_updates["updates"]:

@@ -82,4 +82,7 @@ class VkApiAccessor(BaseAccessor):
             data = await resp.json()
             self.ts = data["ts"]
             b_data = await resp.read()
+            self.logger.info("got a message from vk:")
+            self.logger.info(data)
+            self.logger.info("send the message to rabbitmq")
             await self.app.store.rabbit_accessor.send_to_queue(b_data)

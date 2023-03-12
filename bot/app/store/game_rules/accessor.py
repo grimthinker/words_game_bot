@@ -46,7 +46,7 @@ class GameRulesAccessor(BaseAccessor):
         )
         return GameRulesModel.to_dc(game_rules, time_settings)
 
-    async def set_rules(self, db_session: AsyncSession, session_id: int, **kwargs):
+    async def set_rules(self, db_session: AsyncSession, session_id: int, **kwargs) -> None:
         stmt = (
             update(GameRulesModel)
             .filter(GameRulesModel.session_id == session_id)

@@ -35,6 +35,7 @@ class SessionPlayer:
     session_id: str
     points: int
     is_dropped_out: bool
+    lives: int
     next_player_id: int
 
 
@@ -55,8 +56,6 @@ class GameSession:
     creator: Player
     state: int
     players: List[Player] = field(default_factory=list)
-    last_word: Optional[str] = None
-    time_updated: Optional[str] = None
 
 
 @dataclass
@@ -70,6 +69,7 @@ class TimeSettings:
 @dataclass
 class GameRules:
     session_id: int
+    lives: int
     max_diff_rule: bool
     max_diff_val: int
     min_diff_rule: bool
@@ -174,6 +174,7 @@ class PlayersSessions(db):
     )
     points = Column(Integer, nullable=False, default=0)
     is_dropped_out = Column(Boolean, nullable=False, default=False)
+    lives = Column(Integer, nullable=False, default=1)
     next_player_id = Column(BigInteger, ForeignKey("players.id", ondelete="SET NULL"))
 
     player = relationship(
@@ -197,6 +198,7 @@ class PlayersSessions(db):
             session_id=model.session_id,
             points=model.points,
             is_dropped_out=model.is_dropped_out,
+            lives=model.lives,
             next_player_id=model.next_player_id,
         )
         return session_player
@@ -232,6 +234,7 @@ class GameRulesModel(db):
     session_id = Column(
         BigInteger, ForeignKey("game_sessions.id", ondelete="CASCADE"), primary_key=True
     )
+    lives = Column(BigInteger, nullable=False, default=1)
     max_diff_rule = Column(Boolean, nullable=False, default=False)
     max_diff_val = Column(BigInteger, nullable=False, default=15)
     min_diff_rule = Column(Boolean, nullable=False, default=False)
@@ -240,8 +243,8 @@ class GameRulesModel(db):
     max_long_val = Column(BigInteger, nullable=False, default=20)
     min_long_rule = Column(Boolean, nullable=False, default=False)
     min_long_val = Column(BigInteger, nullable=False, default=2)
-    custom_vote_time = Column(BigInteger, nullable=True, default=50)
-    custom_word_time = Column(BigInteger, nullable=True, default=50)
+    custom_vote_time = Column(BigInteger, nullable=True, default=None)
+    custom_word_time = Column(BigInteger, nullable=True, default=None)
     similarity_valued = Column(Boolean, nullable=False, default=False)
     short_on_time = Column(Boolean, nullable=False, default=False)
     req_vote_percentage = Column(Float, nullable=False, default=0.5)
@@ -253,6 +256,7 @@ class GameRulesModel(db):
     def to_dc(model, time_settings: TimeSettings) -> GameRules:
         game_rules = GameRules(
             session_id=model.session_id,
+            lives=model.lives,
             max_diff_rule=model.max_diff_rule,
             max_diff_val=model.max_diff_val,
             min_diff_rule=model.min_diff_rule,
@@ -266,6 +270,6 @@ class GameRulesModel(db):
             similarity_valued=model.similarity_valued,
             short_on_time=model.short_on_time,
             req_vote_percentage=model.req_vote_percentage,
-            time_settings=time_settings,
+            time_settings=model.time_settings_id,
         )
         return game_rules

@@ -189,12 +189,16 @@ class MessageHelper:
         return f"{update.message.user.username} cannot vote"
 
     @staticmethod
-    def already_voted(update: Union[Update, TGUpdate]) -> str:
-        return f"{update.message.user.username} has already voted"
+    def already_voted(update: Union[Update, TGUpdate], word: Word) -> str:
+        return f"{update.message.user.username} has already voted {update.message.text} for the word '{word.word}'"
+
+    @staticmethod
+    def on_someones_revote(update: Union[Update, TGUpdate], word: Word) -> str:
+        return f"{update.message.user.username} changes the vote to '{update.message.text}' for the word '{word.word}'"
 
     @staticmethod
     def on_someones_vote(update: Union[Update, TGUpdate], word: Word) -> str:
-        return f"{update.message.user.username} votes '{update.message.text}' for '{word.word}'"
+        return f"{update.message.user.username} votes '{update.message.text}' for the word '{word.word}'"
 
     @staticmethod
     def game_results(session_players: list[SessionPlayer]) -> str:
