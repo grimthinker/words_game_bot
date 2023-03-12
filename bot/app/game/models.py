@@ -1,5 +1,5 @@
 import enum
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import Optional, List
 
 from app.store.database.sqlalchemy_base import db
@@ -13,6 +13,7 @@ from sqlalchemy import (
     Text,
     Table,
     DateTime,
+    Float,
     func,
 )
 
@@ -56,6 +57,33 @@ class GameSession:
     players: List[Player] = field(default_factory=list)
     last_word: Optional[str] = None
     time_updated: Optional[str] = None
+
+
+@dataclass
+class TimeSettings:
+    id: int
+    name: str
+    wait_word_time: int
+    wait_vote_time: int
+
+
+@dataclass
+class GameRules:
+    session_id: int
+    max_diff_rule: bool
+    max_diff_val: int
+    min_diff_rule: bool
+    min_diff_val: int
+    max_long_rule: bool
+    max_long_val: int
+    min_long_rule: bool
+    min_long_val: int
+    similarity_valued: bool
+    short_on_time: bool
+    req_vote_percentage: float
+    time_settings: TimeSettings
+    custom_vote_time: Optional[int] = None
+    custom_word_time: Optional[int] = None
 
 
 class ChatModel(db):
@@ -107,8 +135,6 @@ class StatesEnum(enum.Enum):
     WAITING_WORD = 2
     VOTE = 3
     ENDED = 9
-
-    SESSION_NEEDED = 11  # not state, for chat filtering
 
 
 class GameSessionModel(db):
@@ -180,3 +206,66 @@ class PlayerModel(db):
     __tablename__ = "players"
     id = Column(BigInteger, primary_key=True)
     name = Column(Text, nullable=False, default="no name")
+
+
+class TimeSettingsModel(db):
+    __tablename__ = "time_settings"
+    id = Column(BigInteger, primary_key=True)
+    name = Column(Text, nullable=False, default="basic")
+    wait_word_time = Column(BigInteger, nullable=False, default=40)
+    wait_vote_time = Column(BigInteger, nullable=False, default=25)
+
+    @staticmethod
+    def to_dc(model) -> TimeSettings:
+        time_settings = TimeSettings(
+            id=model.id,
+            name=model.name,
+            wait_word_time=model.wait_word_time,
+            wait_vote_time=model.wait_vote_time,
+        )
+        return time_settings
+
+
+class GameRulesModel(db):
+    __tablename__ = "game_rules"
+    field_names = [f.name for f in fields(GameRules)]
+    session_id = Column(
+        BigInteger, ForeignKey("game_sessions.id", ondelete="CASCADE"), primary_key=True
+    )
+    max_diff_rule = Column(Boolean, nullable=False, default=False)
+    max_diff_val = Column(BigInteger, nullable=False, default=15)
+    min_diff_rule = Column(Boolean, nullable=False, default=False)
+    min_diff_val = Column(BigInteger, nullable=False, default=1)
+    max_long_rule = Column(Boolean, nullable=False, default=False)
+    max_long_val = Column(BigInteger, nullable=False, default=20)
+    min_long_rule = Column(Boolean, nullable=False, default=False)
+    min_long_val = Column(BigInteger, nullable=False, default=2)
+    custom_vote_time = Column(BigInteger, nullable=True, default=50)
+    custom_word_time = Column(BigInteger, nullable=True, default=50)
+    similarity_valued = Column(Boolean, nullable=False, default=False)
+    short_on_time = Column(Boolean, nullable=False, default=False)
+    req_vote_percentage = Column(Float, nullable=False, default=0.5)
+    time_settings_id = Column(
+        BigInteger, ForeignKey("time_settings.id", ondelete="CASCADE"), nullable=False
+    )
+
+    @staticmethod
+    def to_dc(model, time_settings: TimeSettings) -> GameRules:
+        game_rules = GameRules(
+            session_id=model.session_id,
+            max_diff_rule=model.max_diff_rule,
+            max_diff_val=model.max_diff_val,
+            min_diff_rule=model.min_diff_rule,
+            min_diff_val=model.min_diff_val,
+            max_long_rule=model.max_long_rule,
+            max_long_val=model.max_long_val,
+            min_long_rule=model.min_long_rule,
+            min_long_val=model.min_long_val,
+            custom_vote_time=model.custom_vote_time,
+            custom_word_time=model.custom_word_time,
+            similarity_valued=model.similarity_valued,
+            short_on_time=model.short_on_time,
+            req_vote_percentage=model.req_vote_percentage,
+            time_settings=time_settings,
+        )
+        return game_rules

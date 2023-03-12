@@ -26,13 +26,23 @@ class WordAccessor(BaseAccessor):
         return SessionWords.to_dc(session_word)
 
     async def get_last_session_word(
-        self, db_session: AsyncSession, session_id: int, approved: Optional[bool] = None
+        self,
+        db_session: AsyncSession,
+        session_id: int,
+        text: Optional[str] = None,
+        approved: Optional[bool] = None,
     ) -> Optional[Word]:
-        stmt = select(SessionWords).filter(SessionWords.session_id == session_id)
+        stmt = (
+            select(SessionWords)
+            .filter(SessionWords.session_id == session_id)
+            .filter(SessionWords.approved == approved)
+        )
+        if text:
+            stmt = stmt.filter(SessionWords.word == text)
         stmt = stmt.order_by(SessionWords.id.desc())
         result = await db_session.execute(stmt)
         word = result.scalars().first()
-        return SessionWords.to_dc(word)
+        return SessionWords.to_dc(word) if word else None
 
     async def add_session_word(
         self,
@@ -57,6 +67,6 @@ class WordAccessor(BaseAccessor):
         stmt = (
             update(SessionWords)
             .filter(SessionWords.id == session_word_id)
-            .values(approved=vote_result)
+            .values({"approved": vote_result})
         )
         await db_session.execute(stmt)

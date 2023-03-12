@@ -6,7 +6,7 @@ from aiohttp import TCPConnector
 from aiohttp.client import ClientSession
 
 if typing.TYPE_CHECKING:
-    from bot_app.app.web.app import Application
+    from app.web.app import Application
 
 
 class BaseAccessor:

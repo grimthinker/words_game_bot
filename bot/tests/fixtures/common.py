@@ -11,12 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.models import Admin, AdminModel
 from app.game.models import PlayerModel, Player
+from app.game.models import TimeSettingsModel
 from app.store import Database
 from app.store import Store
 from app.store.bot.constants import BOT_ID, BOT_NAME
 from app.web.app import setup_app
 from app.web.config import Config
-
 from app.store.bot.helpers import remove_timer
 
 
@@ -119,3 +119,14 @@ async def bot(cli, db_session, config: Config) -> Player:
     async with db_session.begin() as session:
         session.add(bot)
     return Player(id=bot.id, name=bot.name)
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def time_settings(db_session):
+    async with db_session.begin() as db_session:
+        time_settings = TimeSettingsModel(id=1)  # adding the basic time settings
+        db_session.add(time_settings)
+        time_settings = TimeSettingsModel(
+            id=2, name="shortened time", wait_word_time=12, wait_vote_time=15
+        )
+        db_session.add(time_settings)

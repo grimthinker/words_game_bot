@@ -36,7 +36,9 @@ async def waiting_votes_state(
     word_update_creator_1: Update,
 ):
     async with db_session.begin() as session:
-        previous_word = await store.words.get_last_session_word(session, 1)
+        previous_word = await store.words.get_last_session_word(
+            session, 1, approved=True
+        )
         prev_player_id = previous_word.proposed_by
         prev_session_player = await store.players.get_session_player(
             session, prev_player_id, 1
@@ -65,7 +67,9 @@ async def waiting_votes_state_three_players(
     await store.bots_manager.handle_update(update=participate_update_player_2)
     await store.bots_manager.handle_update(update=launch_game_update)
     async with db_session.begin() as session:
-        previous_word = await store.words.get_last_session_word(session, 1)
+        previous_word = await store.words.get_last_session_word(
+            session, 1, approved=True
+        )
         prev_player_id = previous_word.proposed_by
         prev_session_player = await store.players.get_session_player(
             session, prev_player_id, 1

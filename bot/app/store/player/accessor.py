@@ -11,13 +11,13 @@ from app.game.models import (
     SessionPlayer,
 )
 from app.store.bot.constants import BOT_ID, BOT_NAME, START_WORDS, TEST_WORD
-from app.store.bot.helpers import judge_word
 
 
 class PlayerAccessor(BaseAccessor):
     async def connect(self, app: "Application"):
         async with self.app.database.session() as db_session:
-            await self.app.store.players.add_player_to_db(db_session, BOT_ID, BOT_NAME)
+            await self.add_player_to_db(db_session, BOT_ID, BOT_NAME)
+
             await db_session.commit()
 
     async def add_player_to_db(
@@ -98,9 +98,8 @@ class PlayerAccessor(BaseAccessor):
         return player
 
     async def accrue_points(
-        self, db_session: AsyncSession, player_id: int, session_id: int, word: str
-    ) -> int:
-        points = judge_word(word)
+        self, db_session: AsyncSession, player_id: int, session_id: int, points: int
+    ) -> None:
         stmt = (
             select(PlayersSessions)
             .where(PlayersSessions.player_id == player_id)
@@ -109,7 +108,6 @@ class PlayerAccessor(BaseAccessor):
         result = await db_session.execute(stmt)
         session_player = result.scalars().first()
         session_player.points += points
-        return points
 
     async def drop_player(
         self, db_session: AsyncSession, player_id: int, session_id: int

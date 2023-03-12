@@ -18,6 +18,7 @@ class Store:
         from app.store.player.accessor import PlayerAccessor
         from app.store.vote.accessor import VoteAccessor
         from app.store.word.accessor import WordAccessor
+        from app.store.game_rules.accessor import GameRulesAccessor
 
         self.admins = AdminAccessor(app)
         self.game_sessions = GameSessionAccessor(app)
@@ -25,6 +26,7 @@ class Store:
         self.players = PlayerAccessor(app)
         self.votes = VoteAccessor(app)
         self.words = WordAccessor(app)
+        self.game_rules = GameRulesAccessor(app)
         if app.config.bot.api == "tg":
             self.external_api = TGApiAccessor(app)
         else:

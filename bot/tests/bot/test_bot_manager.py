@@ -52,7 +52,9 @@ class TestHandleBaseUpdates:
     ):
         """If one player sends a word that fits the rules, state turns to the vote state."""
         async with db_session.begin() as session:
-            previous_word = await store.words.get_last_session_word(session, 1)
+            previous_word = await store.words.get_last_session_word(
+                session, 1, approved=True
+            )
             prev_player_id = previous_word.proposed_by
             prev_session_player = await store.players.get_session_player(
                 session, prev_player_id, 1
@@ -82,7 +84,9 @@ class TestHandleBaseUpdates:
     ):
         """If one player sends a word that doesn't fit the rules, state stays the same."""
         async with db_session.begin() as session:
-            previous_word = await store.words.get_last_session_word(session, 1)
+            previous_word = await store.words.get_last_session_word(
+                session, 1, approved=True
+            )
             prev_player_id = previous_word.proposed_by
             prev_session_player = await store.players.get_session_player(
                 session, prev_player_id, 1
@@ -116,7 +120,9 @@ class TestHandleBaseUpdates:
     ):
         """If one player sends a word that fits the rules, state turns to the vote state."""
         async with db_session.begin() as session:
-            previous_word = await store.words.get_last_session_word(session, 1)
+            previous_word = await store.words.get_last_session_word(
+                session, 1, approved=True
+            )
             prev_player_id = previous_word.proposed_by
             prev_session_player = await store.players.get_session_player(
                 session, prev_player_id, 1
@@ -141,13 +147,12 @@ class TestHandleBaseUpdates:
         else:
             await store.bots_manager.handle_update(update=wrong_word_update_player_1)
         assert store.external_api.send_message.call_count == 12
-
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(
                 session, chat_1.id
             )
 
-        # now it should be time wor a vote
+        # now it should be time for a vote
         assert game_session.state == StatesEnum.VOTE.value
 
     @pytest.mark.asyncio
@@ -162,17 +167,21 @@ class TestHandleBaseUpdates:
         creator_vote_yes_update: Update,
         player_vote_yes_update: Update,
     ):
-        """Checks the result of one player's vote 'yes'. The session turns to waiting_word state after that"""
+        """Checks the result of one player's vote 'yes'"""
         async with db_session.begin() as session:
-            previous_word = await store.words.get_last_session_word(session, 1)
+            previous_word = await store.words.get_last_session_word(
+                session, 1, approved=None
+            )
             prev_player_id = previous_word.proposed_by
             prev_session_player = await store.players.get_session_player(
                 session, prev_player_id, 1
             )
         if prev_session_player.next_player_id == player_1.id:
-            await store.bots_manager.handle_update(update=player_vote_yes_update)
-        else:
             await store.bots_manager.handle_update(update=creator_vote_yes_update)
+        else:
+            await store.bots_manager.handle_update(update=player_vote_yes_update)
+        for x in store.external_api.send_message.mock_calls:
+            print(x.kwargs["message"])
         assert store.external_api.send_message.call_count == 10
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(
@@ -195,15 +204,17 @@ class TestHandleBaseUpdates:
         """Checks the result of the one player's vote 'no'. In two players session
         that means the second player's lost and the end of the session"""
         async with db_session.begin() as session:
-            previous_word = await store.words.get_last_session_word(session, 1)
+            previous_word = await store.words.get_last_session_word(
+                session, 1, approved=None
+            )
             prev_player_id = previous_word.proposed_by
             prev_session_player = await store.players.get_session_player(
                 session, prev_player_id, 1
             )
         if prev_session_player.next_player_id == player_1.id:
-            await store.bots_manager.handle_update(update=player_vote_no_update)
-        else:
             await store.bots_manager.handle_update(update=creator_vote_no_update)
+        else:
+            await store.bots_manager.handle_update(update=player_vote_no_update)
         assert store.external_api.send_message.call_count == 11
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(
@@ -227,7 +238,9 @@ class TestHandleBaseUpdates:
         """Checks the result of one player's repeating vote 'yes'. The session should stay in the waiting_vote
         state after that"""
         async with db_session.begin() as session:
-            previous_word = await store.words.get_last_session_word(session, 1)
+            previous_word = await store.words.get_last_session_word(
+                session, 1, approved=None
+            )
             prev_player_id = previous_word.proposed_by
             prev_session_player = await store.players.get_session_player(
                 session, prev_player_id, 1
@@ -238,6 +251,8 @@ class TestHandleBaseUpdates:
         else:
             for _ in range(3):
                 await store.bots_manager.handle_update(update=creator_vote_yes_update)
+        for x in store.external_api.send_message.mock_calls:
+            print(x.kwargs["message"])
         assert store.external_api.send_message.call_count == 10
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(

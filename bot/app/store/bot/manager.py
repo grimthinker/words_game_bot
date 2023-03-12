@@ -17,11 +17,13 @@ from app.store.bot.helpers import (
     generate_some_order,
     check_word,
     list_results,
-    MessageHelper,
     remove_timer,
     is_session_running,
+    judge_word,
 )
 from app.store.tg_api.dataclasses import Update
+
+from app.web.utils import MessageHelper
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
@@ -50,7 +52,7 @@ class BotManager:
                     await self.wait_word(session, next_player, word)
                 if session.state == StatesEnum.VOTE.value:
                     word = await self.app.store.game_sessions.get_last_session_word(
-                        db_session, session.id
+                        db_session, session.id, approved=None
                     )
                     await self.wait_vote(session, word)
 
@@ -87,8 +89,11 @@ class BotManager:
                 update.message.chat_id, MessageHelper.already_started
             )
             return
-        await self.app.store.game_sessions.create_session(
+        session_id = await self.app.store.game_sessions.create_session(
             db_session, update.message.chat_id, update.message.user.id
+        )
+        await self.app.store.game_rules.create_rules(
+            db_session, session_id, self.app.store.game_rules.basic_time_settings_id
         )
         await self.send_message(update.message.chat_id, MessageHelper.started(update))
 
@@ -149,11 +154,6 @@ class BotManager:
         session_player = await self.app.store.players.get_session_player(
             db_session, update.message.user.id, session.id
         )
-        if not session_player:
-            self.logger.error(
-                f"failed to get session_player with user_id={update.message.user.id}, session={session.id}"
-            )
-
         previous_word = await self.app.store.words.get_last_session_word(
             db_session, session.id, approved=True
         )
@@ -162,17 +162,33 @@ class BotManager:
         req_answerer = await self.app.store.players.get_next_player(
             db_session, prev_player_id, session.id
         )
+        if len(proposed_word) < 2:
+            await self.send_message(
+                update.message.chat_id, MessageHelper.too_short_word(update)
+            )
+            return
+        same_word = await self.app.store.words.get_last_session_word(
+            db_session,
+            session.id,
+            text=proposed_word,
+            approved=True,
+        )
         if not session_player.player_id == req_answerer.id:
             await self.send_message(
                 update.message.chat_id, MessageHelper.wrong_player_turn(update)
             )
             return
-        if not check_word(proposed_word, previous_word.word):
+        if same_word:
+            await self.send_message(
+                update.message.chat_id, MessageHelper.used_word(update)
+            )
+            return
+        rules = await self.app.store.game_rules.get_rules(db_session, session.id)
+        if not check_word(proposed_word, previous_word.word, rules):
             await self.send_message(
                 update.message.chat_id, MessageHelper.word_doesnt_fit(update)
             )
             return
-
         await self.send_message(
             update.message.chat_id, MessageHelper.word_proposed(update)
         )
@@ -205,7 +221,7 @@ class BotManager:
             )
             return
         word_to_vote = await self.app.store.words.get_last_session_word(
-            db_session, session.id
+            db_session, session.id, approved=None
         )
         existing_vote = await self.app.store.votes.has_voted(
             db_session, update.message.user.id, word_to_vote.id
@@ -232,10 +248,22 @@ class BotManager:
     async def on_info(
         self, db_session: AsyncSession, update: Update, session: GameSession
     ):
-        if session:
-            pass
-        else:
-            pass
+        if not session or session.state == 0:
+            session = await self.app.store.game_sessions.get_current_session(
+                db_session, update.message.chat_id, StatesEnum.ENDED.value
+            )
+        if not session:
+            await self.send_message(
+                update.message.chat_id, MessageHelper.no_session_in_db
+            )
+            return
+        session_players = await self.app.store.players.get_session_players(
+            db_session, session.id
+        )
+        await self.send_message(
+            update.message.chat_id,
+            MessageHelper.last_game_results(session, session_players),
+        )
 
     async def on_end_session(
         self, db_session: AsyncSession, update: Update, session: GameSession
@@ -395,7 +423,7 @@ class BotManager:
         else:
             await self.send_message(session.chat_id, MessageHelper.all_players_voted)
         word_to_vote = await self.app.store.words.get_last_session_word(
-            db_session, session.id
+            db_session, session.id, approved=None
         )
         if not word_votes:
             word_votes = await self.app.store.votes.get_word_votes(
@@ -409,12 +437,15 @@ class BotManager:
         next_player = await self.app.store.players.get_next_player(
             db_session, player.id, session.id
         )
+
+        rules = await self.app.store.game_rules.get_rules(db_session, session.id)
         if len(word_votes) == 0 or len(yes_votes) / len(word_votes) >= 0.5:
             await self.app.store.words.set_vote_result(
                 db_session, word_to_vote.id, True
             )
-            points = await self.app.store.players.accrue_points(
-                db_session, word_to_vote.proposed_by, session.id, word_to_vote.word
+            points = judge_word(word_to_vote.word, rules)
+            await self.app.store.players.accrue_points(
+                db_session, word_to_vote.proposed_by, session.id, points
             )
             await self.app.store.game_sessions.set_session_state(
                 db_session, session.id, StatesEnum.WAITING_WORD.value
@@ -428,7 +459,7 @@ class BotManager:
             await self.app.store.words.set_vote_result(
                 db_session, word_to_vote.id, False
             )
-            await self.drop_player(db_session, session, next_player, word_to_vote)
+            await self.drop_player(db_session, session, player, word_to_vote)
             await self.send_message(
                 session.chat_id,
                 MessageHelper.vote_result_negative(word_to_vote, player),
