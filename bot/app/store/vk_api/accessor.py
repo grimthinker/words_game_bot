@@ -2,7 +2,7 @@ import random
 import typing
 
 from app.base.base_accessor import BaseAccessor
-from app.web.utils import vk_make_update_from_raw, KeyboardHelper, _build_query
+from app.web.utils import KeyboardHelper, _build_query
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application

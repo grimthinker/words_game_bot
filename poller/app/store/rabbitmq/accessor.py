@@ -33,10 +33,11 @@ class RabbitAccessor(BaseAccessor):
 
     async def disconnect(self, app: "Application"):
         if self.connection:
-            self.connection.close()
+            await self.connection.close()
 
     async def send_to_queue(self, message: bytes):
-        await self.channel.default_exchange.publish(
-            Message(message),
-            routing_key=self.queue.name,
-        )
+        if self.channel:
+            await self.channel.default_exchange.publish(
+                Message(message),
+                routing_key=self.queue.name,
+            )

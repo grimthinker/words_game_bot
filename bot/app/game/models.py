@@ -82,6 +82,8 @@ class GameRules:
     short_on_time: bool
     req_vote_percentage: float
     time_settings: TimeSettings
+    min_players: int
+    max_players: int
     custom_vote_time: Optional[int] = None
     custom_word_time: Optional[int] = None
 
@@ -251,6 +253,8 @@ class GameRulesModel(db):
     time_settings_id = Column(
         BigInteger, ForeignKey("time_settings.id", ondelete="CASCADE"), nullable=False
     )
+    min_players = Column(BigInteger, nullable=False, default=1)
+    max_players = Column(BigInteger, nullable=False, default=3)
 
     @staticmethod
     def to_dc(model, time_settings: TimeSettings) -> GameRules:
@@ -271,5 +275,7 @@ class GameRulesModel(db):
             short_on_time=model.short_on_time,
             req_vote_percentage=model.req_vote_percentage,
             time_settings=model.time_settings_id,
+            min_players=model.min_players,
+            max_players=model.max_players
         )
         return game_rules

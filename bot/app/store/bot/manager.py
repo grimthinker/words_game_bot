@@ -5,13 +5,7 @@ from typing import Union, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.game.models import GameSession, StatesEnum, Player, Word, SessionPlayer
-from app.store.bot.constants import (
-    BOT_ID,
-    BOT_NAME,
-    BASIC_COMMANDS,
-    WORD_ENTER_TIME,
-    VOTE_TIME,
-)
+from app.store.bot.constants import *
 from app.store.bot.helpers import (
     AsyncTimer,
     generate_some_order,
@@ -22,7 +16,6 @@ from app.store.bot.helpers import (
     judge_word,
 )
 from app.store.tg_api.dataclasses import Update
-
 from app.web.utils import MessageHelper
 
 if typing.TYPE_CHECKING:
@@ -37,6 +30,7 @@ class BotManager:
         self.vote_timers = dict()
 
     async def on_bot_initializing(self, app: "Application"):
+
         async with self.app.database.session.begin() as db_session:
             sessions = await self.app.store.game_sessions.get_sessions(
                 db_session, state_not=StatesEnum.ENDED.value
@@ -57,6 +51,7 @@ class BotManager:
                     await self.wait_vote(session, word)
 
     async def handle_update(self, update: Update) -> None:
+        print(update)
         async with self.app.database.session.begin() as db_session:
             await self.confirm_chat_in_db(db_session, update)
             await self.confirm_user_in_db(db_session, update)
@@ -64,7 +59,6 @@ class BotManager:
                 db_session, update.message.chat_id
             )
             update = await self.delete_if_wrong_message(update, session)
-
             if not update:
                 return
             elif update.message.text == "/start":
@@ -93,7 +87,7 @@ class BotManager:
         session_id = await self.app.store.game_sessions.create_session(
             db_session, update.message.chat_id, update.message.user.id
         )
-        await self.app.store.game_rules.create_rules(
+        rules = await self.app.store.game_rules.create_rules(
             db_session, session_id, self.app.store.game_rules.basic_time_settings_id
         )
         await self.send_message(update.message.chat_id, MessageHelper.started(update))
@@ -105,9 +99,11 @@ class BotManager:
         if not is_session_running(session):
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
             return
+
         if session.state != StatesEnum.PREPARING.value:
             await self.send_message(update.message.chat_id, MessageHelper.cant_join_now)
             return
+
         session_player = await self.app.store.players.get_session_player(
             db_session, update.message.user.id, session.id
         )
@@ -116,6 +112,14 @@ class BotManager:
                 update.message.chat_id, MessageHelper.already_participates(update)
             )
             return
+
+        rules = await self.app.store.game_rules.get_rules(db_session, session.id)
+        if len(session.players) > rules.max_players:
+            await self.send_message(
+                update.message.chat_id, MessageHelper.too_much_players
+            )
+            return
+
         await self.app.store.players.add_player_to_session(
             db_session, update.message.user.id, session.id
         )
@@ -127,21 +131,26 @@ class BotManager:
         if not is_session_running(session):
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
             return
+
         if session.state != StatesEnum.PREPARING.value:
             await self.send_message(
                 update.message.chat_id, MessageHelper.already_launched
             )
             return
+
         if session.creator.id != update.message.user.id:
             await self.send_message(
                 update.message.chat_id, MessageHelper.not_creator_to_launch(update)
             )
             return
-        if len(session.players) < 2:
+
+        rules = await self.app.store.game_rules.get_rules(db_session, session.id)
+        if len(session.players) < rules.min_players:
             await self.send_message(
                 update.message.chat_id, MessageHelper.too_few_players
             )
             return
+
         await self.send_message(update.message.chat_id, MessageHelper.launched)
         await self.launch_session(db_session, session)
 
@@ -152,7 +161,7 @@ class BotManager:
         if not is_session_running(session):
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
             return
-
+        print(update)
         session_player = await self.app.store.players.get_session_player(
             db_session, update.message.user.id, session.id
         )
@@ -287,9 +296,8 @@ class BotManager:
         else:
             await self.send_message(update.message.chat_id, MessageHelper.no_session)
 
-    async def send_message(self, chat_id: int, message: str) -> None:
-        params = {"chat_id": chat_id, "message": message}
-        await self.app.store.external_api.send_message(**params)
+    async def send_message(self, chat_id: int, message: str, **params) -> None:
+        await self.app.store.external_api.send_message(chat_id, message, **params)
 
     async def confirm_chat_in_db(
         self, db_session: AsyncSession, update: Update
@@ -379,20 +387,28 @@ class BotManager:
         if from_timer:
             await self.send_message(session.chat_id, MessageHelper.time_for_word_ended)
 
-        # If only one real player is left (plus bot who has proposed the first word), then we need to end this
-        # game session. So let's verify this
         session_players = await self.app.store.players.get_session_players(
             db_session, session.id
         )
+
+        # If only one real player is left (plus bot who has proposed the first word), then we need to end this
+        # game session. So let's verify this
+        # In case of singleplayer, game session ends if all lives of the player were spent
         remaining_players = [
             player
             for player in session_players
             if not player.is_dropped_out and player.player_id != BOT_ID
         ]
+
         if len(remaining_players) < 2:
-            remaining_player = await self.app.store.players.get_player_by_id(
-                db_session, remaining_players[0].player_id
-            )
+            if (len(remaining_players) < 1) and len(session_players) == 2:
+                remaining_player = await self.app.store.players.get_player_by_id(
+                    db_session, player.id
+                )
+            else:
+                remaining_player = await self.app.store.players.get_player_by_id(
+                    db_session, remaining_players[0].player_id
+                )
             await self.app.store.game_sessions.set_session_state(
                 db_session, session.id, StatesEnum.ENDED.value
             )
@@ -475,20 +491,23 @@ class BotManager:
     ) -> Optional[list[SessionPlayer]]:
         """
         To be able to vote for a word the player has to participate in the game session, not to be
-        dropped, and not to be the one proposing the word. So here we are, checking this...
+        dropped, and not to be the one proposing the word (the last is not the case when in singleplayer).
+        So here we are, checking this...
         """
         player_id = update.message.user.id
         session_players = await self.app.store.players.get_session_players(
             db_session, session.id
         )
+
         filtered = list(
             filter(lambda player: player.player_id == player_id, session_players)
         )
+
         session_player = filtered[0] if filtered else None
         if (
             not session_player
             or session_player.is_dropped_out
-            or session_player.player_id == word_to_vote.proposed_by
+            or (session_player.player_id == word_to_vote.proposed_by and len(session_players) > 2)
         ):
             return None
         # We will need to check if all the players have voted right after when this one has voted,
