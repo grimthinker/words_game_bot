@@ -6,3 +6,4 @@ VOTE_TIME = 15
 START_WORDS = ["Игра", "Город", "Потёмки", "Пёс", "Пламя"]
 TEST_WORD = "Игра"
 BASIC_COMMANDS = ["/start", "/participate", "/launch", "/end", "/info", "/yes", "/no"]
+MIN_PLAYERS = 1

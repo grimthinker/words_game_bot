@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.store import Store
 from app.game.models import StatesEnum, Player, Chat
 from app.store.tg_api.dataclasses import Update
+from app.web.utils import MessageHelper
 
 
 class TestHandleBaseUpdates:
@@ -152,7 +153,7 @@ class TestHandleBaseUpdates:
                 session, chat_1.id
             )
 
-        # now it should be time for a vote
+        # now it should be time for the vote
         assert game_session.state == StatesEnum.VOTE.value
 
     @pytest.mark.asyncio
@@ -177,9 +178,9 @@ class TestHandleBaseUpdates:
                 session, prev_player_id, 1
             )
         if prev_session_player.next_player_id == player_1.id:
-            await store.bots_manager.handle_update(update=creator_vote_yes_update)
-        else:
             await store.bots_manager.handle_update(update=player_vote_yes_update)
+        else:
+            await store.bots_manager.handle_update(update=creator_vote_yes_update)
         assert store.external_api.send_message.call_count == 10
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(
@@ -210,9 +211,9 @@ class TestHandleBaseUpdates:
                 session, prev_player_id, 1
             )
         if prev_session_player.next_player_id == player_1.id:
-            await store.bots_manager.handle_update(update=creator_vote_no_update)
-        else:
             await store.bots_manager.handle_update(update=player_vote_no_update)
+        else:
+            await store.bots_manager.handle_update(update=creator_vote_no_update)
         assert store.external_api.send_message.call_count == 11
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(
@@ -353,5 +354,190 @@ class TestHandleBaseUpdates:
         async with db_session.begin() as session:
             game_session = await store.game_sessions.get_current_session(
                 session, chat_1.id, StatesEnum.ENDED.value
+            )
+        assert game_session
+
+
+class TestHandleWrongUpdates:
+    async def test_handle_participate_no_session(
+        self,
+        store: Store,
+        participate_update_player_1: Update,
+    ):
+        await store.bots_manager.handle_update(update=participate_update_player_1)
+        assert store.external_api.send_message.call_count == 1
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.no_session
+
+    async def test_handle_launch_no_session(
+        self,
+        store: Store,
+        launch_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=launch_game_update)
+        assert store.external_api.send_message.call_count == 1
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.no_session
+
+    async def test_handle_vote_no_session(
+        self,
+        store: Store,
+        player_vote_yes_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=player_vote_yes_update)
+        assert store.external_api.send_message.call_count == 1
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.no_session
+
+    async def test_handle_launch_one_player(
+        self,
+        store: Store,
+        preparing_state,
+        launch_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=launch_game_update)
+        assert store.external_api.send_message.call_count == 2
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.too_few_players
+
+    async def test_handle_participate_launched_session(
+        self,
+        store: Store,
+        waiting_word_state,
+        participate_update_player_2: Update,
+    ):
+        await store.bots_manager.handle_update(update=participate_update_player_2)
+        assert store.external_api.send_message.call_count == 5
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.cant_join_now
+
+    async def test_handle_participate_while_voting(
+        self,
+        store: Store,
+        db_session: AsyncSession,
+        waiting_votes_state,
+        participate_update_player_2: Update,
+    ):
+        await store.bots_manager.handle_update(update=participate_update_player_2)
+        assert store.external_api.send_message.call_count == 7
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.cant_join_now
+
+    async def test_handle_start_while_preparing(
+        self,
+        store: Store,
+        preparing_state,
+        start_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=start_game_update)
+        assert store.external_api.send_message.call_count == 2
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.already_started
+
+    async def test_handle_start_while_wait_word(
+        self,
+        store: Store,
+        waiting_word_state,
+        start_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=start_game_update)
+        assert store.external_api.send_message.call_count == 5
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.already_started
+
+    async def test_handle_start_while_vote(
+        self,
+        store: Store,
+        waiting_votes_state,
+        start_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=start_game_update)
+        assert store.external_api.send_message.call_count == 7
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.already_started
+
+    async def test_handle_launch_while_wait_word(
+        self,
+        store: Store,
+        waiting_word_state,
+        launch_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=launch_game_update)
+        assert store.external_api.send_message.call_count == 5
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.already_launched
+
+    async def test_handle_launch_while_vote(
+        self,
+        store: Store,
+        waiting_votes_state,
+        launch_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=launch_game_update)
+        assert store.external_api.send_message.call_count == 7
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.already_launched
+
+    async def test_handle_vote_while_preparing(
+        self,
+        store: Store,
+        preparing_state,
+        player_vote_yes_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=player_vote_yes_update)
+        assert store.external_api.send_message.call_count == 2
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.game_is_not_launched
+
+    async def test_handle_vote_while_waiting_word(
+        self,
+        store: Store,
+        db_session: AsyncSession,
+        waiting_word_state,
+        chat_1: Chat,
+        player_vote_yes_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=player_vote_yes_update)
+        assert store.external_api.send_message.call_count == 5
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.no_word_to_vote
+        async with db_session.begin() as session:
+            game_session = await store.game_sessions.get_current_session(
+                session, chat_1.id
+            )
+        assert game_session.state == StatesEnum.WAITING_WORD.value
+
+    async def test_handle_word_while_preparing(
+        self,
+        store: Store,
+        preparing_state,
+        word_update_creator_1: Update,
+    ):
+        assert store.external_api.send_message.call_count == 1
+        await store.bots_manager.handle_update(update=word_update_creator_1)
+        assert store.external_api.send_message.call_count == 1
+
+    async def test_handle_word_while_vote(
+        self,
+        store: Store,
+        waiting_votes_state,
+        word_update_creator_1: Update,
+    ):
+        assert store.external_api.send_message.call_count == 6
+        await store.bots_manager.handle_update(update=word_update_creator_1)
+        assert store.external_api.send_message.call_count == 6
+
+    async def test_handle_end_after_end(
+        self,
+        store: Store,
+        preparing_state,
+        end_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=end_game_update)
+        await store.bots_manager.handle_update(update=end_game_update)
+        assert store.external_api.send_message.call_count == 3
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.no_session
+
+    async def test_handle_end_not_creator(
+        self,
+        store: Store,
+        db_session: AsyncSession,
+        chat_1: Chat,
+        waiting_votes_state,
+        wrong_end_game_update: Update,
+    ):
+        await store.bots_manager.handle_update(update=wrong_end_game_update)
+        assert store.external_api.send_message.call_count == 7
+        assert store.external_api.send_message.mock_calls[-1].kwargs["message"] == MessageHelper.cant_end
+        async with db_session.begin() as session:
+            game_session = await store.game_sessions.get_current_session(
+                session, chat_1.id, StatesEnum.PREPARING.value
             )
         assert game_session

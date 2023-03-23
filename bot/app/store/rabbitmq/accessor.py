@@ -55,14 +55,12 @@ class RabbitAccessor(BaseAccessor):
 
         self.logger.info("got a message from rabbitmq:")
         self.logger.info(raw_upd_json)
-        raw_updates = json.loads(raw_upd_json)
-        if "updates" in raw_updates:
-            for raw_update in raw_updates["updates"]:
-                if self.app.config.bot.api == "tg":
-                    update = tg_make_update_from_raw(raw_update)
-                else:
-                    update = vk_make_update_from_raw(raw_update)
-                await self.async_queue.put(update)
+        raw_update = json.loads(raw_upd_json)
+        if self.app.config.bot.api == "tg":
+            update = tg_make_update_from_raw(raw_update)
+        else:
+            update = vk_make_update_from_raw(raw_update)
+        await self.async_queue.put(update)
         await message.ack()
 
     async def _worker(self):

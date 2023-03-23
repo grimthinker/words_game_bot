@@ -112,13 +112,17 @@ class PlayerAccessor(BaseAccessor):
     async def drop_player(
         self, db_session: AsyncSession, player_id: int, session_id: int
     ) -> None:
+
         stmt = (
-            update(PlayersSessions)
-            .filter(PlayersSessions.player_id == player_id)
-            .filter(PlayersSessions.session_id == session_id)
-            .values(is_dropped_out=True)
+            select(PlayersSessions)
+            .where(PlayersSessions.player_id == player_id)
+            .where(PlayersSessions.session_id == session_id)
         )
-        await db_session.execute(stmt)
+        result = await db_session.execute(stmt)
+        session_player = result.scalars().first()
+        session_player.lives -= 1
+        if session_player.lives == 0:
+            session_player.is_dropped_out = True
 
     async def get_next_player(
         self, db_session: AsyncSession, player_id: int, session_id: int

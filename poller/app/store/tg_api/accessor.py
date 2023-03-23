@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 
 from aiohttp import ClientSession, TCPConnector
@@ -38,9 +39,12 @@ class TGApiAccessor(BaseAccessor):
         )
         async with self.session.get(query) as resp:
             data = await resp.json()
-            self.offset = data[-1]["id"]
-            b_data = await resp.read()
-            await self.app.store.rabbit_accessor.send_to_queue(b_data)
+            if data["ok"]:
+                for item in data["result"]:
+                    self.logger.info(item)
+                    self.offset = item["update_id"] + 1
+                    raw_upd = json.dumps(item)
+                    await self.app.store.rabbit_accessor.send_to_queue(raw_upd.encode("utf-8"))
 
     @staticmethod
     def _build_query(api_path: str, method: str, params: dict) -> str:

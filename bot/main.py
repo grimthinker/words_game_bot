@@ -1,14 +1,10 @@
-import os
 
-from app.web.app import setup_app
-from aiohttp.web import run_app
 
-if __name__ == "__main__":
-    run_app(
-        setup_app(
-            config_path=os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "config.yml"
-            )
-        ),
-        port=9090,
-    )
+n, s = [int(x) for x in input().split()]
+numbers = []
+for x in range(n):
+    data = input()
+    min_x, max_x = data.split()[0], data.split()[1]
+    print(min_x, max_x)
+    unit = [int(min_x), int(min_x), int(max_x)]
+    numbers.append(unit)

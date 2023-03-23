@@ -71,62 +71,88 @@ def vk_make_update_from_raw(raw_update: dict) -> Update:
 
 
 def tg_make_update_from_raw(raw_update: dict) -> Update:
-    update = TGUpdate(
-        id=raw_update["update_id"],
-        message=TGUpdateMessage(
-            user=TGUpdateUser(
-                id=raw_update["message"]["from"]["id"],
-                is_bot=raw_update["message"]["from"]["is_bot"],
-                first_name=raw_update["message"]["from"]["first_name"],
-                username=raw_update["message"]["from"]["username"],
+    try:
+        update = TGUpdate(
+            id=raw_update["update_id"],
+            message=TGUpdateMessage(
+                user=TGUpdateUser(
+                    id=raw_update["message"]["from"]["id"],
+                    is_bot=raw_update["message"]["from"]["is_bot"],
+                    first_name=raw_update["message"]["from"]["first_name"],
+                    username=raw_update["message"]["from"]["username"],
+                ),
+                text=raw_update["message"]["text"],
+                id=raw_update["message"]["message_id"],
+                chat_id=raw_update["message"]["chat"]["id"],
+                date=raw_update["message"]["date"],
             ),
-            text=raw_update["message"]["text"],
-            id=raw_update["message"]["message_id"],
-            chat_id=raw_update["message"]["chat"]["id"],
-            date=raw_update["message"]["date"],
-        ),
-    )
-    return update
+        )
+        return update
+    except:
+        pass
 
 
 class KeyboardHelper:
-    @classmethod
+    def __init__(self, external_api):
+        self.external_api = external_api
+
     def _button(
-        cls,
+        self,
         label: str,
         payload: Union[int, str, None] = None,
         color: Optional[str] = None,
     ) -> dict:
-        button = {"action": {"type": "text", "label": label}}
-        if payload:
-            button["action"]["payload"] = payload
-        if color:
-            button["color"] = color
+        if self.external_api == "vk":
+            button = {"action": {"type": "text", "label": label}}
+            if payload:
+                button["action"]["payload"] = payload
+            if color:
+                button["color"] = color
+        else:
+            button = {"text": label}
         return button
 
-    @classmethod
-    def _keyboard(cls, buttons: list[list[dict]]) -> str:
-        keyboard = {"one_time": False, "buttons": buttons, "inline": False}
+    def _keyboard(self, buttons: list) -> str:
+        if self.external_api == 'vk':
+            keyboard = {"one_time": False, "buttons": buttons, "inline": False}
+        else:
+            keyboard = {"keyboard": buttons}
         return json.dumps(keyboard)
 
-    @classmethod
-    def generate_helping_keyboard(cls):
+    def generate_helping_keyboard(self):
         buttons = [
             [
-                cls._button("/start", payload="{}"),
-                cls._button("/launch", payload="{}"),
-                cls._button("/yes", payload="{}"),
+                self._button("/start", payload="{}"),
+                self._button("/launch", payload="{}"),
+                self._button("/yes", payload="{}"),
             ],
             [
-                cls._button("/participate", payload="{}"),
-                cls._button("/end", payload="{}"),
-                cls._button("/no", payload="{}"),
+                self._button("/participate", payload="{}"),
+                self._button("/end", payload="{}"),
+                self._button("/no", payload="{}"),
             ],
             [
-                cls._button("/info", payload="{}"),
+                self._button("/info", payload="{}"),
             ],
         ]
-        return cls._keyboard(buttons=buttons)
+        return self._keyboard(buttons=buttons)
+
+    def generate_settings_keyboard(self):
+        buttons = [
+            [
+                self._button("/similarity_valued", payload="{}"),
+                self._button("/similarity_not_valued", payload="{}"),
+            ],
+            [
+                self._button("/short_on_time", payload="{}"),
+                self._button("/not_short_on_time", payload="{}"),
+            ],
+            [
+                self._button("/launch", payload="{}"),
+            ],
+        ]
+        return self._keyboard(buttons=buttons)
+
 
 
 class MessageHelper:
@@ -136,7 +162,8 @@ class MessageHelper:
     cant_join_now = "Can't join the game session now, wait till a new session starts"
     cant_end = "Only the one started the game can stop it "
     already_launched = "Game's already launched"
-    too_few_players = "Too few players, wait for another one"
+    too_few_players = "Too few players, wait for new ones"
+    too_much_players = "Too much players, wait for new game session"
     launched = "The game has started!"
     game_is_not_launched = "Launch the game first"
     no_word_to_vote = "We need to get a word first"
