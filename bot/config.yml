@@ -1,5 +1,3 @@
-user_token: OTY3NmVjYWYtZTJhNC00NzNhLTgwM2YtZGY3OTBkYTM3YWFhXzM1NDM=
-
 session:
   key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
 admin:
@@ -15,9 +13,9 @@ rabbitmq:
   host: localhost
   port: 5672
 bot:
-  vk_token: vk1.a.N4BpI0SIIS-ZiVRCco9o1g1Vr8BWh1JnuXLGHiLYUs3rFs3k8IbLIdtFvNnZaSU8ief8tzcygiptPTwg0HclWb-XHy6zMNDAJZajl6LxuYX92tVDuCfNIyQOGAaldMZbtXgTxzSalatYmu5GXXxMGaKVTy4vDclZpNH97wSICQsjpsh5Ujqq2Osfy2ZJz5ru
-  tg_token: 6173898255:AAG7gjmOT09QQ_8X1WKJdng1iUt9rBamZo0
-  group_id: 215486536
+  vk_token:
+  tg_token:
+  group_id:
   api: tg
 game:
   word_wait_time: 20
